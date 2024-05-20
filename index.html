@@ -1,1 +1,63 @@
 <h1>Hello I'm Kaye. Welcome!</h1>
+import android.content.Context
+import android.os.VibrationEffect
+import android.os.Vibrator
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.*
+
+@Composable
+fun VibrateOnPressButton() {
+    val context = LocalContext.current
+    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator }
+    var isPressed by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    Button(
+        onClick = { /* do nothing here, handled by interaction below */ },
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        interactionSource = remember { MutableInteractionSource() }
+            .also { interactionSource ->
+                LaunchedEffect(interactionSource) {
+                    interactionSource.interactions.collect { interaction ->
+                        when (interaction) {
+                            is PressInteraction.Press -> {
+                                if (!isPressed) {
+                                    isPressed = true
+                                    scope.launch {
+                                        var amplitude = 1
+                                        while (isPressed) {
+                                            if (amplitude < 255) {
+                                                amplitude += 5  // 강도 점차 증가
+                                            }
+                                            val effect = VibrationEffect.createWaveform(
+                                                longArrayOf(0, 1000), // 1초 진동
+                                                intArrayOf(0, amplitude),
+                                                0 // 반복
+                                            )
+                                            vibrator.vibrate(effect)
+                                            delay(3000)  // 3초 간격으로 반복
+                                        }
+                                    }
+                                }
+                            }
+                            is PressInteraction.Release -> {
+                                isPressed = false
+                            }
+                        }
+                    }
+                }
+            }
+    ) {
+        Text("Press and Hold")
+    }
+}
