@@ -61,3 +61,119 @@ fun VibrateOnPressButton() {
         Text("Press and Hold")
     }
 }
+
+
+
+
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.* 
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MyApp()
+        }
+    }
+}
+
+@Composable
+fun MyApp() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // 1. 상단 텍스트 2줄
+        Text("첫 번째 줄 텍스트", fontSize = 24.sp, color = Color.Black)
+        Text("두 번째 줄 텍스트", fontSize = 16.sp, color = Color.Gray)
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // 2. 중간 박스 아이콘 4개가 한줄로 배치
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            repeat(4) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(painter = painterResource(id = R.drawable.ic_launcher_foreground), contentDescription = null)
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 3. 마지막 영역에는 페이저가 있는데 16개의 아이콘이 4개씩 2줄로 배치되고, 총 2페이지가 된다
+        val pagerState = rememberPagerState(initialPage = 0)
+        val coroutineScope = rememberCoroutineScope()
+        val pages = 2
+        val iconsPerPage = 8 // 4개씩 2줄
+
+        HorizontalPager(
+            count = pages,
+            state = pagerState,
+            modifier = Modifier.fillMaxWidth()
+        ) { page ->
+            Column {
+                val startIndex = page * iconsPerPage
+                val endIndex = (page + 1) * iconsPerPage
+                val icons = (startIndex until endIndex).toList()
+                icons.chunked(4).forEach { rowIcons ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        rowIcons.forEach {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .padding(8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(painter = painterResource(id = R.drawable.ic_launcher_foreground), contentDescription = null)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 페이저 인디케이터
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            repeat(pages) { page ->
+                val color = if (pagerState.currentPage == page) Color.Black else Color.Gray
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .padding(4.dp)
+                        .background(color = color, shape = CircleShape)
+                )
+            }
+        }
+    }
+}
