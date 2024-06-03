@@ -1,178 +1,97 @@
-<h1>Hello I'm Kaye. Welcome!</h1>
-import android.content.Context
-import android.os.VibrationEffect
-import android.os.Vibrator
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.*
-
-@Composable
-fun VibrateOnPressButton() {
-    val context = LocalContext.current
-    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator }
-    var isPressed by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-
-    Button(
-        onClick = { /* do nothing here, handled by interaction below */ },
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        interactionSource = remember { MutableInteractionSource() }
-            .also { interactionSource ->
-                LaunchedEffect(interactionSource) {
-                    interactionSource.interactions.collect { interaction ->
-                        when (interaction) {
-                            is PressInteraction.Press -> {
-                                if (!isPressed) {
-                                    isPressed = true
-                                    scope.launch {
-                                        var amplitude = 1
-                                        while (isPressed) {
-                                            if (amplitude < 255) {
-                                                amplitude += 5  // 강도 점차 증가
-                                            }
-                                            val effect = VibrationEffect.createWaveform(
-                                                longArrayOf(0, 1000), // 1초 진동
-                                                intArrayOf(0, amplitude),
-                                                0 // 반복
-                                            )
-                                            vibrator.vibrate(effect)
-                                            delay(3000)  // 3초 간격으로 반복
-                                        }
-                                    }
-                                }
-                            }
-                            is PressInteraction.Release -> {
-                                isPressed = false
-                            }
-                        }
-                    }
-                }
-            }
-    ) {
-        Text("Press and Hold")
-    }
-}
-
-
-
-
-
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.* 
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MyApp()
-        }
-    }
-}
+            var offsetX by remember { mutableStateOf(0f) }
+            var offsetY by remember { mutableStateOf(0f) }
+            val iconSize = 80.dp
+            val iconHalfSizePx = with(LocalDensity.current) { (iconSize / 2).toPx() }
 
-@Composable
-fun MyApp() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // 1. 상단 텍스트 2줄
-        Text("첫 번째 줄 텍스트", fontSize = 24.sp, color = Color.Black)
-        Text("두 번째 줄 텍스트", fontSize = 16.sp, color = Color.Gray)
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // 2. 중간 박스 아이콘 4개가 한줄로 배치
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            repeat(4) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .padding(8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(painter = painterResource(id = R.drawable.ic_launcher_foreground), contentDescription = null)
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
+            // 두 영역의 바운딩 박스 정의
+            val firstAreaBounds = remember { mutableStateOf(Rect(0f, 0f, 400f, 400f)) }
+            val secondAreaBounds = remember { mutableStateOf(Rect(400f, 0f, 800f, 400f)) }
 
-        // 3. 마지막 영역에는 페이저가 있는데 16개의 아이콘이 4개씩 2줄로 배치되고, 총 2페이지가 된다
-        val pagerState = rememberPagerState(initialPage = 0)
-        val coroutineScope = rememberCoroutineScope()
-        val pages = 2
-        val iconsPerPage = 8 // 4개씩 2줄
+            var inSecondArea by remember { mutableStateOf(false) }
 
-        HorizontalPager(
-            count = pages,
-            state = pagerState,
-            modifier = Modifier.fillMaxWidth()
-        ) { page ->
-            Column {
-                val startIndex = page * iconsPerPage
-                val endIndex = (page + 1) * iconsPerPage
-                val icons = (startIndex until endIndex).toList()
-                icons.chunked(4).forEach { rowIcons ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        rowIcons.forEach {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .padding(8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(painter = painterResource(id = R.drawable.ic_launcher_foreground), contentDescription = null)
+            // 드래그 제스처 감지 및 위치 업데이트
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.LightGray)
+                    .pointerInput(Unit) {
+                        detectDragGestures(
+                            onDragStart = {
+                                inSecondArea = false
+                            },
+                            onDragEnd = {
+                                // 드래그가 끝났을 때 아이콘의 중앙이 두 번째 영역 안에 있는지 확인
+                                val iconCenterX = offsetX + iconHalfSizePx
+                                val iconCenterY = offsetY + iconHalfSizePx
+                                if (iconCenterX > secondAreaBounds.value.left &&
+                                    iconCenterX < secondAreaBounds.value.right &&
+                                    iconCenterY > secondAreaBounds.value.top &&
+                                    iconCenterY < secondAreaBounds.value.bottom) {
+                                    inSecondArea = true
+                                }
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                offsetX += dragAmount.x
+                                offsetY += dragAmount.y
                             }
-                        }
+                        )
                     }
-                }
-            }
-        }
-
-        // 페이저 인디케이터
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            repeat(pages) { page ->
-                val color = if (pagerState.currentPage == page) Color.Black else Color.Gray
+            ) {
+                // 첫 번째 영역
                 Box(
                     modifier = Modifier
-                        .size(12.dp)
-                        .padding(4.dp)
-                        .background(color = color, shape = CircleShape)
+                        .offset { IntOffset(0, 0) }
+                        .size(400.dp)
+                        .background(Color.Blue)
                 )
+
+                // 두 번째 영역
+                Box(
+                    modifier = Modifier
+                        .offset { IntOffset(400, 0) }
+                        .size(400.dp)
+                        .background(Color.Green)
+                )
+
+                // 드래그 가능한 아이콘
+                Box(
+                    modifier = Modifier
+                        .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
+                        .size(iconSize)
+                        .background(Color.Red)
+                )
+
+                // 아이콘이 두 번째 영역에 완전히 들어갔을 때 알림
+                if (inSecondArea) {
+                    Text(
+                        text = "Icon is in the second area",
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(16.dp)
+                            .background(Color.Black)
+                            .padding(8.dp)
+                            .background(Color.Yellow)
+                    )
+                }
             }
         }
     }
