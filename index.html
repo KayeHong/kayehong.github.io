@@ -1,12 +1,17 @@
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -24,40 +29,56 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MyApp() {
-    var items by remember { mutableStateOf((1..7).map { "Item $it" }.toMutableList()) }
+    var items by remember { mutableStateOf((1..8).map { "Item $it" }.toMutableList()) }
     val pagerState = rememberPagerState(initialPage = 0)
     val coroutineScope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
         HorizontalPager(
-            pageCount = (items.size + 3) / 4,
+            pageCount = (items.size + 7) / 8,
             state = pagerState,
             modifier = Modifier.weight(1f)
         ) { page ->
-            Column {
-                for (i in 0 until 4) {
-                    val index = page * 4 + i
-                    if (index < items.size) {
-                        Text(
-                            text = items[index],
+            FlowRow(
+                modifier = Modifier.fillMaxSize(),
+                maxItemsInEachRow = 4,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val startIndex = page * 8
+                val endIndex = (startIndex + 8).coerceAtMost(items.size)
+                for (index in startIndex until endIndex) {
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn(animationSpec = tween(300)),
+                        exit = fadeOut(animationSpec = tween(300))
+                    ) {
+                        Box(
                             modifier = Modifier
-                                .padding(8.dp)
-                                .background(Color.Gray)
-                                .padding(16.dp)
-                        )
+                                .size(80.dp)
+                                .background(Color.Gray),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = items[index])
+                        }
                     }
                 }
             }
         }
 
         Button(onClick = {
-            items.add("Item ${items.size + 1}")
-            coroutineScope.launch {
-                val newPage = (items.size - 1) / 4
-                pagerState.scrollToPage(newPage)
+            if (items.size > 2) {
+                items = items.toMutableList().apply {
+                    removeAt(2)
+                }
             }
         }) {
-            Text("Add Item")
+            Text("Remove 3rd Item")
         }
     }
 }
