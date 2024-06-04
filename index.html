@@ -1,52 +1,80 @@
 <!--
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun MyApp() {
-    var items by remember { mutableStateOf((1..8).map { "Item $it" }.toMutableList()) }
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState())
-    ) {
-        FlowRow(
-            modifier = Modifier
-                .fillMaxSize()
-                .animateContentSize(), // 아이템이 제거될 때 크기 변화 애니메이션 적용
-            maxItemsInEachRow = 4,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items.forEachIndexed { index, item ->
-                AnimatedVisibility(
-                    visible = items.contains(item),
-                    enter = fadeIn(animationSpec = tween(durationMillis = 500)),
-                    exit = fadeOut(animationSpec = tween(durationMillis = 500))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .background(Color.Gray)
-                            .padding(8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = item)
-                    }
-                }
-            }
-        }
-
-        Button(onClick = {
-            if (items.isNotEmpty()) {
-                items = items.toMutableList().apply {
-                    removeAt(2)
-                }
-            }
-        }) {
-            Text("Remove 3rd Item")
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MyApp()
         }
     }
 }
+
+@Composable
+fun MyApp() {
+    val navController = rememberNavController()
+    NavHost(navController = navController, startDestination = "list") {
+        composable("list") { ItemListScreen(navController) }
+        composable("detail/{itemId}") { backStackEntry ->
+            val itemId = backStackEntry.arguments?.getString("itemId")
+            ItemDetailScreen(itemId = itemId)
+        }
+    }
+}
+
+@Composable
+fun ItemListScreen(navController: NavHostController) {
+    val items = remember { (1..20).map { "Item $it" } }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp)
+    ) {
+        items(items) { item ->
+            Text(
+                text = item,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .clickable {
+                        navController.navigate("detail/$item")
+                    }
+            )
+            Divider()
+        }
+    }
+}
+
+@Composable
+fun ItemDetailScreen(itemId: String?) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = "Detail for $itemId", style = MaterialTheme.typography.headlineMedium)
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = { /* handle button click */ }) {
+            Text(text = "Go Back")
+        }
+    }
+}
+
 
 -->
