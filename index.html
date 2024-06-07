@@ -32,6 +32,59 @@ fun LauncherAnimationDemo() {
     )
 }
 
+@Composable
+fun DraggableIcon(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    onDragStart: () -> Unit,
+    onDragEnd: () -> Unit
+) {
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    val draggableState = rememberDraggableState { delta ->
+        offset += Offset(delta, 0f)
+    }
 
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        modifier = modifier
+            .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
+            .draggable(
+                orientation = Orientation.Horizontal,
+                state = draggableState,
+                onDragStarted = { onDragStart() },
+                onDragStopped = { onDragEnd() }
+            )
+    )
+}
+
+@Composable
+fun HighlightIcon(
+    icon: ImageVector,
+    isHighlighted: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val color by animateColorAsState(if (isHighlighted) Color.Red else Color.Gray)
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = color,
+        modifier = modifier
+    )
+}
+
+
+@Composable
+fun SpacerWithBorder(
+    isDraggingOver: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val borderColor by animateColorAsState(if (isDraggingOver) Color.Blue else Color.Transparent)
+    Box(
+        modifier = modifier
+            .size(100.dp)
+            .border(2.dp, borderColor)
+    )
+}
 
 -->
