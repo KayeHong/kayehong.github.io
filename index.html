@@ -29,6 +29,7 @@ fun DraggableIconDemo() {
         Icons.Default.Home, Icons.Default.Settings, Icons.Default.Favorite
     )
     var icons by remember { mutableStateOf(initialIcons) }
+    var isDraggedInside by remember { mutableStateOf(false) }
     val draggableOffsetX = remember { Animatable(0f) }
     val draggableOffsetY = remember { Animatable(0f) }
     val coroutineScope = rememberCoroutineScope()
@@ -44,7 +45,7 @@ fun DraggableIconDemo() {
             horizontalArrangement = Arrangement.spacedBy(iconSpacing),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            icons.forEach { icon ->
+            icons.forEachIndexed { index, icon ->
                 Box(
                     modifier = Modifier
                         .size(iconSize)
@@ -56,6 +57,9 @@ fun DraggableIconDemo() {
                         modifier = Modifier.align(Alignment.Center).size(24.dp),
                         tint = Color.White
                     )
+                }
+                if (isDraggedInside && index == 0) {
+                    Spacer(modifier = Modifier.width(iconSize + iconSpacing))
                 }
             }
         }
@@ -81,14 +85,13 @@ fun DraggableIconDemo() {
                         icons.size
                     )
                     if (isInside) {
-                        icons = icons.toMutableList().apply {
-                            add(1, Icons.Default.Star)
-                        }
-                        draggableOffsetX.snapTo(0f)
-                        draggableOffsetY.snapTo(0f)
+                        isDraggedInside = true
+                        draggableOffsetX.animateTo(iconSize.toPx() + iconSpacing.toPx(), tween(300))
+                        draggableOffsetY.animateTo(0f, tween(300))
                     } else {
                         draggableOffsetX.animateTo(0f, tween(300))
                         draggableOffsetY.animateTo(0f, tween(300))
+                        isDraggedInside = false
                     }
                 }
             }
@@ -132,7 +135,7 @@ fun DraggableIcon(
 
 fun isInsideIconRow(dragOffset: Offset, iconSize: Dp, iconSpacing: Dp, iconCount: Int): Boolean {
     val itemWidth = iconSize.toPx() + iconSpacing.toPx()
-    val totalWidth = itemWidth * iconCount - iconSpacing.toPx()
+    val totalWidth = itemWidth * iconCount
 
     val isInsideX = dragOffset.x in 0f..totalWidth
     val isInsideY = dragOffset.y in 0f..iconSize.toPx()
@@ -144,5 +147,6 @@ fun isInsideIconRow(dragOffset: Offset, iconSize: Dp, iconSpacing: Dp, iconCount
 fun Dp.toPx(): Float {
     return with(LocalDensity.current) { this@toPx.toPx() }
 }
+
 
 -->
