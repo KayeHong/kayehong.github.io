@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -55,8 +54,7 @@ fun LauncherAnimationDemo() {
                         DraggableIcon(
                             icon = icon,
                             onDragStart = {},
-                            onDragEnd = {},
-                            onDragOutside = { onDragOutside() }
+                            onDragEnd = {}
                         )
                     }
                 }
@@ -70,13 +68,17 @@ fun DraggableIcon(
     modifier: Modifier = Modifier,
     icon: ImageVector,
     onDragStart: () -> Unit,
-    onDragEnd: () -> Unit,
-    onDragOutside: () -> Unit
+    onDragEnd: () -> Unit
 ) {
     var offset by remember { mutableStateOf(Offset.Zero) }
     val animatedOffsetX = remember { Animatable(0f) }
     val animatedOffsetY = remember { Animatable(0f) }
     val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(offset) {
+        animatedOffsetX.snapTo(offset.x)
+        animatedOffsetY.snapTo(offset.y)
+    }
 
     Box(
         modifier = Modifier
@@ -93,20 +95,13 @@ fun DraggableIcon(
                     },
                     onDragEnd = {
                         onDragEnd()
-                        offset = Offset.Zero
-                        coroutineScope.launch {
-                            animatedOffsetX.snapTo(0f)
-                            animatedOffsetY.snapTo(0f)
-                        }
+                        offset = Offset(animatedOffsetX.value, animatedOffsetY.value)
                     },
                     onDrag = { change, dragAmount ->
                         offset += dragAmount
                         coroutineScope.launch {
                             animatedOffsetX.snapTo(offset.x)
                             animatedOffsetY.snapTo(offset.y)
-                            if (offset.x < -100 || offset.x > 1000 || offset.y < -100 || offset.y > 1000) {
-                                onDragOutside()
-                            }
                         }
                     }
                 )
@@ -125,8 +120,32 @@ fun DraggableIcon(
     }
 }
 
-fun onDragOutside() {
-    // Handle the event when the icon is dragged outside the pager area
+@Composable
+fun HighlightIcon(
+    icon: ImageVector,
+    isHighlighted: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val color by animateColorAsState(if (isHighlighted) Color.Red else Color.Gray)
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = color,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun SpacerWithBorder(
+    isDraggingOver: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val borderColor by animateColorAsState(if (isDraggingOver) Color.Blue else Color.Transparent)
+    Box(
+        modifier = modifier
+            .size(48.dp)
+            .border(2.dp, borderColor)
+    )
 }
 
 
