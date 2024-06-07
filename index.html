@@ -20,11 +20,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.google.accompanist.pager.*
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalPagerApi::class)
 @Composable
 fun LauncherAnimationDemo() {
     val icons = listOf(
@@ -35,27 +33,43 @@ fun LauncherAnimationDemo() {
         Icons.Default.Home, Icons.Default.Settings, Icons.Default.Favorite,
         Icons.Default.Star
     )
-    val pages = icons.chunked(8)
-    val pagerState = rememberPagerState()
+    val iconState = remember { icons.toMutableStateList() }
+    val iconOffsets = remember { icons.map { Animatable(Offset.Zero) }.toMutableStateList() }
 
-    HorizontalPager(
-        count = pages.size,
-        state = pagerState,
-        modifier = Modifier.fillMaxSize()
-    ) { pageIndex ->
+    Box(modifier = Modifier.fillMaxSize()) {
         Column {
-            pages[pageIndex].chunked(4).forEach { rowIcons ->
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    rowIcons.forEachIndexed { index, icon ->
-                        DraggableIcon(
-                            icon = icon,
-                            onDragStart = {},
-                            onDragEnd = {}
-                        )
+            iconState.chunked(8).forEachIndexed { pageIndex, pageIcons ->
+                Column {
+                    pageIcons.chunked(4).forEachIndexed { rowIndex, rowIcons ->
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            rowIcons.forEachIndexed { colIndex, icon ->
+                                val iconIndex = pageIndex * 8 + rowIndex * 4 + colIndex
+                                val offset = iconOffsets[iconIndex]
+
+                                DraggableIcon(
+                                    icon = icon,
+                                    offset = offset.value,
+                                    onDrag = { dragAmount ->
+                                        val newOffset = offset.value + dragAmount
+                                        if (newOffset.x >= 0f && newOffset.y >= 0f) {
+                                            offset.snapTo(newOffset)
+                                        }
+                                    },
+                                    onDragEnd = { finalOffset ->
+                                        val targetIndex = calculateTargetIndex(finalOffset, iconState.size)
+                                        if (targetIndex != iconIndex) {
+                                            swapIcons(iconState, iconOffsets, iconIndex, targetIndex)
+                                        } else {
+                                            offset.animateTo(Offset.Zero, tween(300))
+                                        }
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -67,42 +81,22 @@ fun LauncherAnimationDemo() {
 fun DraggableIcon(
     modifier: Modifier = Modifier,
     icon: ImageVector,
-    onDragStart: () -> Unit,
-    onDragEnd: () -> Unit
+    offset: Offset,
+    onDrag: (Offset) -> Unit,
+    onDragEnd: (Offset) -> Unit
 ) {
-    var offset by remember { mutableStateOf(Offset.Zero) }
-    val animatedOffsetX = remember { Animatable(0f) }
-    val animatedOffsetY = remember { Animatable(0f) }
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(offset) {
-        animatedOffsetX.snapTo(offset.x)
-        animatedOffsetY.snapTo(offset.y)
-    }
-
     Box(
-        modifier = Modifier
-            .offset {
-                IntOffset(
-                    animatedOffsetX.value.roundToInt(),
-                    animatedOffsetY.value.roundToInt()
-                )
-            }
+        modifier = modifier
+            .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
             .pointerInput(Unit) {
                 detectDragGestures(
-                    onDragStart = {
-                        onDragStart()
+                    onDrag = { change, dragAmount ->
+                        onDrag(Offset(dragAmount.x, dragAmount.y))
                     },
                     onDragEnd = {
-                        onDragEnd()
-                        offset = Offset(animatedOffsetX.value, animatedOffsetY.value)
-                    },
-                    onDrag = { change, dragAmount ->
-                        offset += dragAmount
-                        coroutineScope.launch {
-                            animatedOffsetX.snapTo(offset.x)
-                            animatedOffsetY.snapTo(offset.y)
-                        }
+                        onDragEnd(offset)
                     }
                 )
             }
@@ -120,32 +114,19 @@ fun DraggableIcon(
     }
 }
 
-@Composable
-fun HighlightIcon(
-    icon: ImageVector,
-    isHighlighted: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val color by animateColorAsState(if (isHighlighted) Color.Red else Color.Gray)
-    Icon(
-        imageVector = icon,
-        contentDescription = null,
-        tint = color,
-        modifier = modifier
-    )
+fun calculateTargetIndex(offset: Offset, itemCount: Int): Int {
+    val position = (offset.x / 100).toInt() + (offset.y / 100).toInt() * 4
+    return position.coerceIn(0, itemCount - 1)
 }
 
-@Composable
-fun SpacerWithBorder(
-    isDraggingOver: Boolean,
-    modifier: Modifier = Modifier
+fun swapIcons(
+    icons: MutableList<ImageVector>,
+    offsets: MutableList<Animatable<Offset, Offset>>,
+    fromIndex: Int,
+    toIndex: Int
 ) {
-    val borderColor by animateColorAsState(if (isDraggingOver) Color.Blue else Color.Transparent)
-    Box(
-        modifier = modifier
-            .size(48.dp)
-            .border(2.dp, borderColor)
-    )
+    icons[fromIndex] = icons[toIndex].also { icons[toIndex] = icons[fromIndex] }
+    offsets[fromIndex] = offsets[toIndex].also { offsets[toIndex] = offsets[fromIndex] }
 }
 
 
