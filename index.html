@@ -28,142 +28,103 @@ fun DraggableIconDemo() {
         Icons.Default.Home, Icons.Default.Settings, Icons.Default.Favorite,
         Icons.Default.Star
     )
-    val iconState = remember { icons.toMutableStateList() }
     val iconOffsets = remember { icons.map { Animatable(Offset.Zero) }.toMutableStateList() }
-    var draggingIndex by remember { mutableStateOf(-1) }
+    var highlightedIndex by remember { mutableStateOf(-1) }
+    val draggableOffset = remember { Animatable(Offset.Zero) }
     val coroutineScope = rememberCoroutineScope()
-
-    Row(
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        iconState.forEachIndexed { index, icon ->
-            val offset = iconOffsets[index].value
-            val isDragging = index == draggingIndex
-
-            Box(
-                modifier = Modifier
-                    .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
-                    .pointerInput(Unit) {
-                        detectDragGestures(
-                            onDragStart = {
-                                if (index == icons.lastIndex) draggingIndex = index
-                            },
-                            onDragEnd = {
-                                if (draggingIndex != -1) {
-                                    coroutineScope.launch {
-                                        iconOffsets.forEach { it.animateTo(Offset.Zero, tween(300)) }
-                                    }
-                                    draggingIndex = -1
-                                }
-                            },
-                            onDrag = { change, dragAmount ->
-                                if (isDragging) {
-                                    val newOffset = offset + dragAmount
-                                    coroutineScope.launch {
-                                        iconOffsets[index].snapTo(newOffset)
-
-                                        // Handle overlap and position change
-                                        val overlappedIndex = iconOffsets.indexOfFirst { it != iconOffsets[index] && it.value == newOffset }
-                                        if (overlappedIndex != -1) {
-                                            iconOffsets[overlappedIndex].snapTo(Offset(newOffset.x + 60f, 0f))
-                                        }
-                                    }
-                                }
-                            }
-                        )
-                    }
-                    .size(48.dp)
-                    .background(if (index != icons.lastIndex && isDragging) Color.Red else Color.Gray, CircleShape)
-                    .then(if (index == draggingIndex) Modifier else Modifier)
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(24.dp),
-                    tint = Color.White
-                )
-            }
-        }
-    }
-}
-----------------
-
-
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.material.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.google.accompanist.pager.*
-import kotlinx.coroutines.launch
-
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            MyApp()
-        }
-    }
-}
-
-@OptIn(ExperimentalPagerApi::class)
-@Composable
-fun MyApp() {
-    val pagerState = rememberPagerState()
-    val coroutineScope = rememberCoroutineScope()
-    val items = List(15) { "Item ${it + 1}" }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        HorizontalPager(
-            count = (items.size + 7) / 8,
-            state = pagerState
-        ) { page ->
-            val startIndex = page * 8
-            val endIndex = minOf(startIndex + 8, items.size)
-            val pageItems = items.subList(startIndex, endIndex)
-
-            FlowRow(
-                mainAxisSpacing = 8.dp,
-                crossAxisSpacing = 8.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                for (item in pageItems) {
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .padding(4.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = item)
-                    }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            icons.forEachIndexed { index, icon ->
+                val offset = iconOffsets[index].value
+                Box(
+                    modifier = Modifier
+                        .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
+                        .size(48.dp)
+                        .background(if (index == highlightedIndex) Color.Red else Color.Gray, CircleShape)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.align(Alignment.Center).size(24.dp),
+                        tint = Color.White
+                    )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(48.dp))
 
-        HorizontalPagerIndicator(
-            pagerState = pagerState,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+        DraggableIcon(
+            icon = Icons.Default.Star,
+            offset = draggableOffset.value,
+            onDrag = { dragAmount ->
+                coroutineScope.launch {
+                    draggableOffset.snapTo(draggableOffset.value + dragAmount)
+                    val overlapIndex = calculateOverlapIndex(draggableOffset.value, icons.size)
+                    highlightedIndex = overlapIndex
+                }
+            },
+            onDragEnd = {
+                coroutineScope.launch {
+                    draggableOffset.animateTo(Offset.Zero, tween(300))
+                    highlightedIndex = -1
+                }
+            }
         )
     }
+}
+
+@Composable
+fun DraggableIcon(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    offset: Offset,
+    onDrag: (Offset) -> Unit,
+    onDragEnd: () -> Unit
+) {
+    val coroutineScope = rememberCoroutineScope()
+
+    Box(
+        modifier = Modifier
+            .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDrag = { change, dragAmount ->
+                        onDrag(Offset(dragAmount.x, dragAmount.y))
+                    },
+                    onDragEnd = {
+                        onDragEnd()
+                    }
+                )
+            }
+            .size(48.dp)
+            .background(Color.Blue, CircleShape)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.align(Alignment.Center).size(24.dp),
+            tint = Color.White
+        )
+    }
+}
+
+fun calculateOverlapIndex(dragOffset: Offset, itemCount: Int): Int {
+    val itemWidth = 48.dp.toPx() + 16.dp.toPx() // 아이템 너비와 간격을 포함
+    val index = (dragOffset.x / itemWidth).toInt()
+    return index.coerceIn(0, itemCount - 1)
+}
+
+fun Dp.toPx(): Float {
+    return this.value * (160 / 160f) // 1dp = 1px for 160 dpi (baseline density)
 }
 
 
