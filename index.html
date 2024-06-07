@@ -28,9 +28,10 @@ fun DraggableIconDemo() {
         Icons.Default.Home, Icons.Default.Settings, Icons.Default.Favorite,
         Icons.Default.Star
     )
-    val iconOffsets = remember { icons.map { Animatable(Offset.Zero) }.toMutableStateList() }
+    val iconOffsets = remember { icons.map { Pair(Animatable(0f), Animatable(0f)) }.toMutableStateList() }
     var highlightedIndex by remember { mutableStateOf(-1) }
-    val draggableOffset = remember { Animatable(Offset.Zero) }
+    val draggableOffsetX = remember { Animatable(0f) }
+    val draggableOffsetY = remember { Animatable(0f) }
     val coroutineScope = rememberCoroutineScope()
 
     Column(
@@ -43,10 +44,11 @@ fun DraggableIconDemo() {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             icons.forEachIndexed { index, icon ->
-                val offset = iconOffsets[index].value
+                val offsetX = iconOffsets[index].first.value
+                val offsetY = iconOffsets[index].second.value
                 Box(
                     modifier = Modifier
-                        .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
+                        .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                         .size(48.dp)
                         .background(if (index == highlightedIndex) Color.Red else Color.Gray, CircleShape)
                 ) {
@@ -64,17 +66,20 @@ fun DraggableIconDemo() {
 
         DraggableIcon(
             icon = Icons.Default.Star,
-            offset = draggableOffset.value,
+            offsetX = draggableOffsetX.value,
+            offsetY = draggableOffsetY.value,
             onDrag = { dragAmount ->
                 coroutineScope.launch {
-                    draggableOffset.snapTo(draggableOffset.value + dragAmount)
-                    val overlapIndex = calculateOverlapIndex(draggableOffset.value, icons.size)
+                    draggableOffsetX.snapTo(draggableOffsetX.value + dragAmount.x)
+                    draggableOffsetY.snapTo(draggableOffsetY.value + dragAmount.y)
+                    val overlapIndex = calculateOverlapIndex(Offset(draggableOffsetX.value, draggableOffsetY.value), icons.size)
                     highlightedIndex = overlapIndex
                 }
             },
             onDragEnd = {
                 coroutineScope.launch {
-                    draggableOffset.animateTo(Offset.Zero, tween(300))
+                    draggableOffsetX.animateTo(0f, tween(300))
+                    draggableOffsetY.animateTo(0f, tween(300))
                     highlightedIndex = -1
                 }
             }
@@ -86,15 +91,14 @@ fun DraggableIconDemo() {
 fun DraggableIcon(
     modifier: Modifier = Modifier,
     icon: ImageVector,
-    offset: Offset,
+    offsetX: Float,
+    offsetY: Float,
     onDrag: (Offset) -> Unit,
     onDragEnd: () -> Unit
 ) {
-    val coroutineScope = rememberCoroutineScope()
-
     Box(
         modifier = Modifier
-            .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
+            .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDrag = { change, dragAmount ->
