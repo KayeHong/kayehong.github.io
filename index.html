@@ -25,15 +25,15 @@ import kotlin.math.roundToInt
 
 @Composable
 fun DraggableIconDemo() {
-    val icons = listOf(
-        Icons.Default.Home, Icons.Default.Settings, Icons.Default.Favorite,
-        Icons.Default.Star
+    val initialIcons = listOf(
+        Icons.Default.Home, Icons.Default.Settings, Icons.Default.Favorite
     )
-    val iconOffsets = remember { icons.map { Pair(Animatable(0f), Animatable(0f)) }.toMutableStateList() }
-    var highlightedIndex by remember { mutableStateOf(-1) }
+    var icons by remember { mutableStateOf(initialIcons) }
     val draggableOffsetX = remember { Animatable(0f) }
     val draggableOffsetY = remember { Animatable(0f) }
     val coroutineScope = rememberCoroutineScope()
+    val iconSize = 48.dp
+    val iconSpacing = 16.dp
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -41,17 +41,14 @@ fun DraggableIconDemo() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(iconSpacing),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            icons.forEachIndexed { index, icon ->
-                val offsetX = iconOffsets[index].first.value
-                val offsetY = iconOffsets[index].second.value
+            icons.forEach { icon ->
                 Box(
                     modifier = Modifier
-                        .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
-                        .size(48.dp)
-                        .background(if (index == highlightedIndex) Color.Red else Color.Gray, CircleShape)
+                        .size(iconSize)
+                        .background(Color.Gray, CircleShape)
                 ) {
                     Icon(
                         imageVector = icon,
@@ -73,19 +70,26 @@ fun DraggableIconDemo() {
                 coroutineScope.launch {
                     draggableOffsetX.snapTo(draggableOffsetX.value + dragAmount.x)
                     draggableOffsetY.snapTo(draggableOffsetY.value + dragAmount.y)
-
-                    val overlapIndex = calculateOverlapIndex(
-                        Offset(draggableOffsetX.value, draggableOffsetY.value),
-                        icons.size
-                    )
-                    highlightedIndex = overlapIndex
                 }
             },
             onDragEnd = {
                 coroutineScope.launch {
-                    draggableOffsetX.animateTo(0f, tween(300))
-                    draggableOffsetY.animateTo(0f, tween(300))
-                    highlightedIndex = -1
+                    val isInside = isInsideIconRow(
+                        Offset(draggableOffsetX.value, draggableOffsetY.value),
+                        iconSize,
+                        iconSpacing,
+                        icons.size
+                    )
+                    if (isInside) {
+                        icons = icons.toMutableList().apply {
+                            add(1, Icons.Default.Star)
+                        }
+                        draggableOffsetX.snapTo(0f)
+                        draggableOffsetY.snapTo(0f)
+                    } else {
+                        draggableOffsetX.animateTo(0f, tween(300))
+                        draggableOffsetY.animateTo(0f, tween(300))
+                    }
                 }
             }
         )
@@ -126,24 +130,14 @@ fun DraggableIcon(
     }
 }
 
-fun calculateOverlapIndex(dragOffset: Offset, itemCount: Int): Int {
-    val itemSize = 48.dp.toPx()
-    val spacing = 16.dp.toPx()
-    val itemWidth = itemSize + spacing
-    val itemHeight = itemSize + spacing
+fun isInsideIconRow(dragOffset: Offset, iconSize: Dp, iconSpacing: Dp, iconCount: Int): Boolean {
+    val itemWidth = iconSize.toPx() + iconSpacing.toPx()
+    val totalWidth = itemWidth * iconCount - iconSpacing.toPx()
 
-    for (i in 0 until itemCount) {
-        val itemStartX = i * itemWidth
-        val itemEndX = itemStartX + itemSize
-        val itemStartY = 0f
-        val itemEndY = itemSize
+    val isInsideX = dragOffset.x in 0f..totalWidth
+    val isInsideY = dragOffset.y in 0f..iconSize.toPx()
 
-        if (dragOffset.x in itemStartX..itemEndX && dragOffset.y in itemStartY..itemEndY) {
-            return i
-        }
-    }
-
-    return -1
+    return isInsideX && isInsideY
 }
 
 @Composable
