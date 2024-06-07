@@ -166,5 +166,185 @@ fun calculateTargetIndex(offset: Offset, itemCount: Int): Int {
     return index
 }
 
+-------
+
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
+
+@Composable
+fun LauncherAnimationDemo() {
+    val icons = listOf(Icons.Default.Home, Icons.Default.Settings, Icons.Default.Favorite)
+    val draggingIndex = remember { mutableStateOf(-1) }
+    val draggedOffset = remember { mutableStateOf(Offset.Zero) }
+    val coroutineScope = rememberCoroutineScope()
+    val positions = remember { mutableStateListOf(*Array(icons.size) { 0.dp }) }
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        icons.forEachIndexed { index, icon ->
+            val position by animateDpAsState(targetValue = positions[index])
+
+            SpacerWithBorder(isDraggingOver = draggingIndex.value == index)
+            HighlightIcon(
+                icon = icon,
+                isHighlighted = draggingIndex.value == index,
+                modifier = Modifier
+                    .padding(8.dp)
+                    .offset(x = position)
+            )
+        }
+
+        DraggableIcon(
+            icon = Icons.Default.Star,
+            onDragStart = {
+                draggingIndex.value = 0
+            },
+            onDragEnd = {
+                draggingIndex.value = -1
+                positions.indices.forEach { positions[it] = 0.dp }
+            },
+            onDrag = { offset ->
+                draggedOffset.value = offset
+                coroutineScope.launch {
+                    val targetIndex = calculateTargetIndex(offset, icons.size)
+                    if (targetIndex != draggingIndex.value) {
+                        positions[targetIndex] = 48.dp // Move the icon to the right by 48.dp
+                        if (draggingIndex.value >= 0 && draggingIndex.value < positions.size) {
+                            positions[draggingIndex.value] = 0.dp
+                        }
+                        draggingIndex.value = targetIndex
+                    }
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun DraggableIcon(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    onDragStart: () -> Unit,
+    onDragEnd: () -> Unit,
+    onDrag: (Offset) -> Unit
+) {
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    val animatedOffsetX by animateFloatAsState(targetValue = offset.x)
+    val animatedOffsetY by animateFloatAsState(targetValue = offset.y)
+
+    var isShaking by remember { mutableStateOf(false) }
+    val rotation = remember { Animatable(0f) }
+
+    LaunchedEffect(isShaking) {
+        if (isShaking) {
+            rotation.animateTo(
+                targetValue = 15f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(300, easing = LinearEasing),
+                    repeatMode = RepeatMode.Reverse
+                )
+            )
+        } else {
+            rotation.stop()
+            rotation.snapTo(0f)
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .offset { IntOffset(animatedOffsetX.roundToInt(), animatedOffsetY.roundToInt()) }
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = {
+                        onDragStart()
+                    },
+                    onDragEnd = {
+                        onDragEnd()
+                        offset = Offset.Zero
+                    },
+                    onDrag = { change, dragAmount ->
+                        offset += dragAmount
+                        onDrag(offset)
+                    }
+                )
+            }
+            .size(48.dp)
+            .background(Color.Gray, CircleShape)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        isShaking = !isShaking
+                    }
+                )
+            }
+            .graphicsLayer(rotationZ = rotation.value)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(24.dp),
+            tint = Color.White
+        )
+    }
+}
+
+@Composable
+fun HighlightIcon(
+    icon: ImageVector,
+    isHighlighted: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val color by animateColorAsState(if (isHighlighted) Color.Red else Color.Gray)
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = color,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun SpacerWithBorder(
+    isDraggingOver: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val borderColor by animateColorAsState(if (isDraggingOver) Color.Blue else Color.Transparent)
+    Box(
+        modifier = modifier
+            .size(48.dp)
+            .border(2.dp, borderColor)
+    )
+}
+
+fun calculateTargetIndex(offset: Offset, itemCount: Int): Int {
+    val position = offset.x.roundToInt()
+    val index = (position / 100).coerceIn(0, itemCount - 1)
+    return index
+}
 
 -->
