@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.Button
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
@@ -13,28 +15,43 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
-fun DraggableIconDemo() {
-    val initialIcons = listOf(
-        Icons.Default.Home, Icons.Default.Settings, Icons.Default.Favorite
+fun IconRevealDemo() {
+    val icons = listOf(
+        Icons.Default.Home, Icons.Default.Settings, Icons.Default.Favorite, Icons.Default.Star
     )
-    var icons by remember { mutableStateOf(initialIcons) }
-    var isDraggedInside by remember { mutableStateOf(false) }
+    var condition by remember { mutableStateOf(false) }
+    val secondIconSize = remember { Animatable(0f) }
+    val secondIconAlpha = remember { Animatable(0f) }
     val draggableOffsetX = remember { Animatable(0f) }
     val draggableOffsetY = remember { Animatable(0f) }
     val coroutineScope = rememberCoroutineScope()
     val iconSize = 48.dp
     val iconSpacing = 16.dp
+
+    LaunchedEffect(condition) {
+        if (condition) {
+            coroutineScope.launch {
+                secondIconSize.animateTo(48f, tween(500))
+                secondIconAlpha.animateTo(1f, tween(500))
+            }
+        } else {
+            coroutineScope.launch {
+                secondIconSize.animateTo(0f, tween(500))
+                secondIconAlpha.animateTo(0f, tween(500))
+            }
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -46,9 +63,12 @@ fun DraggableIconDemo() {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             icons.forEachIndexed { index, icon ->
+                val size = if (index == 1) secondIconSize.value.dp else 48.dp
+                val alpha = if (index == 1) secondIconAlpha.value else 1f
                 Box(
                     modifier = Modifier
-                        .size(iconSize)
+                        .size(size)
+                        .alpha(alpha)
                         .background(Color.Gray, CircleShape)
                 ) {
                     Icon(
@@ -57,9 +77,6 @@ fun DraggableIconDemo() {
                         modifier = Modifier.align(Alignment.Center).size(24.dp),
                         tint = Color.White
                     )
-                }
-                if (isDraggedInside && index == 0) {
-                    Spacer(modifier = Modifier.width(iconSize + iconSpacing))
                 }
             }
         }
@@ -85,13 +102,13 @@ fun DraggableIconDemo() {
                         icons.size
                     )
                     if (isInside) {
-                        isDraggedInside = true
-                        draggableOffsetX.animateTo(iconSize.toPx() + iconSpacing.toPx(), tween(300))
-                        draggableOffsetY.animateTo(0f, tween(300))
+                        condition = true
+                        draggableOffsetX.animateTo((iconSize.toPx() + iconSpacing.toPx()), tween(500))
+                        draggableOffsetY.animateTo(0f, tween(500))
                     } else {
-                        draggableOffsetX.animateTo(0f, tween(300))
-                        draggableOffsetY.animateTo(0f, tween(300))
-                        isDraggedInside = false
+                        draggableOffsetX.animateTo(0f, tween(500))
+                        draggableOffsetY.animateTo(0f, tween(500))
+                        condition = false
                     }
                 }
             }
@@ -147,6 +164,5 @@ fun isInsideIconRow(dragOffset: Offset, iconSize: Dp, iconSpacing: Dp, iconCount
 fun Dp.toPx(): Float {
     return with(LocalDensity.current) { this@toPx.toPx() }
 }
-
 
 -->
