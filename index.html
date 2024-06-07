@@ -72,7 +72,11 @@ fun DraggableIconDemo() {
                 coroutineScope.launch {
                     draggableOffsetX.snapTo(draggableOffsetX.value + dragAmount.x)
                     draggableOffsetY.snapTo(draggableOffsetY.value + dragAmount.y)
-                    val overlapIndex = calculateOverlapIndex(Offset(draggableOffsetX.value, draggableOffsetY.value), icons.size)
+
+                    val overlapIndex = calculateOverlapIndex(
+                        Offset(draggableOffsetX.value, draggableOffsetY.value),
+                        icons.size
+                    )
                     highlightedIndex = overlapIndex
                 }
             },
@@ -122,15 +126,24 @@ fun DraggableIcon(
 }
 
 fun calculateOverlapIndex(dragOffset: Offset, itemCount: Int): Int {
-    val itemWidth = 48.dp.toPx() + 16.dp.toPx() // 아이템 너비와 간격을 포함
-    val index = (dragOffset.x / itemWidth).toInt()
-    return index.coerceIn(0, itemCount - 1)
+    val itemSize = 48.dp.toPx()
+    val spacing = 16.dp.toPx()
+    val itemWidth = itemSize + spacing
+
+    for (i in 0 until itemCount) {
+        val itemStartX = i * itemWidth
+        val itemEndX = itemStartX + itemSize
+
+        if (dragOffset.x in itemStartX..itemEndX) {
+            return i
+        }
+    }
+
+    return -1
 }
 
 fun Dp.toPx(): Float {
     return this.value * (160 / 160f) // 1dp = 1px for 160 dpi (baseline density)
 }
-
-
 
 -->
