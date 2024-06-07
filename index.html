@@ -87,4 +87,95 @@ fun SpacerWithBorder(
     )
 }
 
+
+
+-----
+
+@Composable
+fun LauncherAnimationDemo() {
+    val icons = listOf(Icons.Default.Home, Icons.Default.Settings, Icons.Default.Favorite)
+    val draggingIndex = remember { mutableStateOf(-1) }
+    val touchedIndex = remember { mutableStateOf(-1) }
+
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        icons.forEachIndexed { index, icon ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                SpacerWithBorder(isDraggingOver = touchedIndex.value == index)
+                HighlightIcon(icon = icon, isHighlighted = draggingIndex.value == index)
+                SpacerWithBorder(isDraggingOver = touchedIndex.value == index + 1)
+            }
+        }
+
+        DraggableIcon(
+            icon = Icons.Default.Star,
+            onDragStart = {
+                draggingIndex.value = 0
+            },
+            onDragEnd = {
+                draggingIndex.value = -1
+            }
+        )
+    }
+}
+
+@Composable
+fun DraggableIcon(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    onDragStart: () -> Unit,
+    onDragEnd: () -> Unit
+) {
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    val draggableState = rememberDraggableState { delta ->
+        offset += Offset(delta, 0f)
+    }
+
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        modifier = modifier
+            .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
+            .draggable(
+                orientation = Orientation.Horizontal,
+                state = draggableState,
+                onDragStarted = { onDragStart() },
+                onDragStopped = { onDragEnd() }
+            )
+    )
+}
+
+@Composable
+fun HighlightIcon(
+    icon: ImageVector,
+    isHighlighted: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val color by animateColorAsState(if (isHighlighted) Color.Red else Color.Gray)
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = color,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun SpacerWithBorder(
+    isDraggingOver: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val borderColor by animateColorAsState(if (isDraggingOver) Color.Blue else Color.Transparent)
+    Box(
+        modifier = modifier
+            .size(50.dp)
+            .border(2.dp, borderColor)
+    )
+}
+
 -->
