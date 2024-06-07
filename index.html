@@ -17,6 +17,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -129,12 +130,15 @@ fun calculateOverlapIndex(dragOffset: Offset, itemCount: Int): Int {
     val itemSize = 48.dp.toPx()
     val spacing = 16.dp.toPx()
     val itemWidth = itemSize + spacing
+    val itemHeight = itemSize + spacing
 
     for (i in 0 until itemCount) {
         val itemStartX = i * itemWidth
         val itemEndX = itemStartX + itemSize
+        val itemStartY = 0f
+        val itemEndY = itemSize
 
-        if (dragOffset.x in itemStartX..itemEndX) {
+        if (dragOffset.x in itemStartX..itemEndX && dragOffset.y in itemStartY..itemEndY) {
             return i
         }
     }
@@ -142,8 +146,10 @@ fun calculateOverlapIndex(dragOffset: Offset, itemCount: Int): Int {
     return -1
 }
 
+@Composable
 fun Dp.toPx(): Float {
-    return this.value * (160 / 160f) // 1dp = 1px for 160 dpi (baseline density)
+    return with(LocalDensity.current) { this@toPx.toPx() }
 }
+
 
 -->
