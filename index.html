@@ -1,4 +1,5 @@
 <!--
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -10,8 +11,6 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -36,9 +35,7 @@ fun LauncherAnimationDemo() {
         modifier = Modifier.fillMaxSize()
     ) {
         icons.forEachIndexed { index, icon ->
-            if (index == draggingIndex.value) {
-                SpacerWithBorder(isDraggingOver = true)
-            }
+            SpacerWithBorder(isDraggingOver = draggingIndex.value == index)
             HighlightIcon(
                 icon = icon,
                 isHighlighted = draggingIndex.value == index,
@@ -46,7 +43,7 @@ fun LauncherAnimationDemo() {
             )
         }
 
-        DraggableIcon(
+        DraggableAndShakingIcon(
             icon = Icons.Default.Star,
             onDragStart = {
                 draggingIndex.value = 0
@@ -66,7 +63,7 @@ fun LauncherAnimationDemo() {
 }
 
 @Composable
-fun DraggableIcon(
+fun DraggableAndShakingIcon(
     modifier: Modifier = Modifier,
     icon: ImageVector,
     onDragStart: () -> Unit,
@@ -74,10 +71,30 @@ fun DraggableIcon(
     onDrag: (Offset) -> Unit
 ) {
     var offset by remember { mutableStateOf(Offset.Zero) }
+    val animatedOffsetX by animateFloatAsState(targetValue = offset.x)
+    val animatedOffsetY by animateFloatAsState(targetValue = offset.y)
+
+    var isShaking by remember { mutableStateOf(false) }
+    val rotation = remember { Animatable(0f) }
+
+    LaunchedEffect(isShaking) {
+        if (isShaking) {
+            rotation.animateTo(
+                targetValue = 15f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(300, easing = LinearEasing),
+                    repeatMode = RepeatMode.Reverse
+                )
+            )
+        } else {
+            rotation.stop()
+            rotation.snapTo(0f)
+        }
+    }
 
     Box(
         modifier = Modifier
-            .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
+            .offset { IntOffset(animatedOffsetX.roundToInt(), animatedOffsetY.roundToInt()) }
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDragStart = {
@@ -95,6 +112,14 @@ fun DraggableIcon(
             }
             .size(48.dp)
             .background(Color.Gray, CircleShape)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        isShaking = !isShaking
+                    }
+                )
+            }
+            .graphicsLayer(rotationZ = rotation.value)
     ) {
         Icon(
             imageVector = icon,
@@ -140,5 +165,6 @@ fun calculateTargetIndex(offset: Offset, itemCount: Int): Int {
     val index = (position / 100).coerceIn(0, itemCount - 1)
     return index
 }
+
 
 -->
