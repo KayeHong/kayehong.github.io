@@ -2,7 +2,6 @@
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -24,110 +23,74 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
-fun LauncherAnimationDemo() {
+fun DraggableIconDemo() {
     val icons = listOf(
-        Icons.Default.Home, Icons.Default.Settings, Icons.Default.Favorite,
-        Icons.Default.Star, Icons.Default.Home, Icons.Default.Settings,
-        Icons.Default.Favorite, Icons.Default.Star, Icons.Default.Home,
-        Icons.Default.Settings, Icons.Default.Favorite, Icons.Default.Star,
         Icons.Default.Home, Icons.Default.Settings, Icons.Default.Favorite,
         Icons.Default.Star
     )
     val iconState = remember { icons.toMutableStateList() }
     val iconOffsets = remember { icons.map { Animatable(Offset.Zero) }.toMutableStateList() }
+    var draggingIndex by remember { mutableStateOf(-1) }
+    val coroutineScope = rememberCoroutineScope()
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column {
-            iconState.chunked(8).forEachIndexed { pageIndex, pageIcons ->
-                Column {
-                    pageIcons.chunked(4).forEachIndexed { rowIndex, rowIcons ->
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            rowIcons.forEachIndexed { colIndex, icon ->
-                                val iconIndex = pageIndex * 8 + rowIndex * 4 + colIndex
-                                val offset = iconOffsets[iconIndex]
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        iconState.forEachIndexed { index, icon ->
+            val offset = iconOffsets[index].value
+            val isDragging = index == draggingIndex
 
-                                DraggableIcon(
-                                    icon = icon,
-                                    offset = offset.value,
-                                    onDrag = { dragAmount ->
-                                        val newOffset = offset.value + dragAmount
-                                        if (newOffset.x >= 0f && newOffset.y >= 0f) {
-                                            offset.snapTo(newOffset)
-                                        }
-                                    },
-                                    onDragEnd = { finalOffset ->
-                                        val targetIndex = calculateTargetIndex(finalOffset, iconState.size)
-                                        if (targetIndex != iconIndex) {
-                                            swapIcons(iconState, iconOffsets, iconIndex, targetIndex)
-                                        } else {
-                                            offset.animateTo(Offset.Zero, tween(300))
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
+                    .pointerInput(Unit) {
+                        detectDragGestures(
+                            onDragStart = {
+                                if (index == icons.lastIndex) draggingIndex = index
+                            },
+                            onDragEnd = {
+                                if (draggingIndex != -1) {
+                                    coroutineScope.launch {
+                                        iconOffsets.forEach { it.animateTo(Offset.Zero, tween(300)) }
+                                    }
+                                    draggingIndex = -1
+                                }
+                            },
+                            onDrag = { change, dragAmount ->
+                                if (isDragging) {
+                                    val newOffset = offset + dragAmount
+                                    coroutineScope.launch {
+                                        iconOffsets[index].snapTo(newOffset)
+
+                                        // Handle overlap and position change
+                                        val overlappedIndex = iconOffsets.indexOfFirst { it != iconOffsets[index] && it.value == newOffset }
+                                        if (overlappedIndex != -1) {
+                                            iconOffsets[overlappedIndex].snapTo(Offset(newOffset.x + 60f, 0f))
                                         }
                                     }
-                                )
+                                }
                             }
-                        }
+                        )
                     }
-                }
+                    .size(48.dp)
+                    .background(if (index != icons.lastIndex && isDragging) Color.Red else Color.Gray, CircleShape)
+                    .then(if (index == draggingIndex) Modifier else Modifier)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(24.dp),
+                    tint = Color.White
+                )
             }
         }
     }
 }
 
-@Composable
-fun DraggableIcon(
-    modifier: Modifier = Modifier,
-    icon: ImageVector,
-    offset: Offset,
-    onDrag: (Offset) -> Unit,
-    onDragEnd: (Offset) -> Unit
-) {
-    val coroutineScope = rememberCoroutineScope()
-
-    Box(
-        modifier = modifier
-            .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDrag = { change, dragAmount ->
-                        onDrag(Offset(dragAmount.x, dragAmount.y))
-                    },
-                    onDragEnd = {
-                        onDragEnd(offset)
-                    }
-                )
-            }
-            .size(48.dp)
-            .background(Color.Gray, CircleShape)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .size(24.dp),
-            tint = Color.White
-        )
-    }
-}
-
-fun calculateTargetIndex(offset: Offset, itemCount: Int): Int {
-    val position = (offset.x / 100).toInt() + (offset.y / 100).toInt() * 4
-    return position.coerceIn(0, itemCount - 1)
-}
-
-fun swapIcons(
-    icons: MutableList<ImageVector>,
-    offsets: MutableList<Animatable<Offset, Offset>>,
-    fromIndex: Int,
-    toIndex: Int
-) {
-    icons[fromIndex] = icons[toIndex].also { icons[toIndex] = icons[fromIndex] }
-    offsets[fromIndex] = offsets[toIndex].also { offsets[toIndex] = offsets[fromIndex] }
-}
 
 
 -->
