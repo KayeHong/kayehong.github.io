@@ -17,6 +17,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -28,7 +29,7 @@ fun DraggableIconDemo() {
         Icons.Default.Home, Icons.Default.Settings, Icons.Default.Favorite, Icons.Default.Star
     )
     var draggingIconIndex by remember { mutableStateOf(-1) }
-    val iconOffsets = remember { icons.map { Animatable(Offset.Zero) }.toMutableStateList() }
+    val iconOffsets = remember { icons.map { Pair(Animatable(0f), Animatable(0f)) }.toMutableStateList() }
     val draggableOffsetX = remember { Animatable(0f) }
     val draggableOffsetY = remember { Animatable(0f) }
     val coroutineScope = rememberCoroutineScope()
@@ -88,9 +89,14 @@ fun DraggableIconDemo() {
             },
             onDragEnd = {
                 coroutineScope.launch {
-                    draggableOffsetX.animateTo(0f, tween(500))
-                    draggableOffsetY.animateTo(0f, tween(500))
-                    draggingIconIndex = -1
+                    if (draggingIconIndex != -1) {
+                        draggableOffsetX.animateTo((draggingIconIndex * (iconSize.toPx() + iconSpacing.toPx())), tween(500))
+                        draggableOffsetY.animateTo(0f, tween(500))
+                        draggingIconIndex = -1
+                    } else {
+                        draggableOffsetX.animateTo(0f, tween(500))
+                        draggableOffsetY.animateTo(0f, tween(500))
+                    }
                 }
             }
         )
@@ -150,6 +156,5 @@ fun calculateOverlapIndex(dragOffset: Offset, iconSize: Dp, iconSpacing: Dp, ico
 fun Dp.toPx(): Float {
     return with(LocalDensity.current) { this@toPx.toPx() }
 }
-
 
 -->
