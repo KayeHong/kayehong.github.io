@@ -1,5 +1,6 @@
 <!--
-import android.content.pm.PackageManager
+
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,14 +15,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            GoogleWalletCheckButton()
+            DeviceCheckButton()
         }
     }
 }
 
 @Composable
-fun GoogleWalletCheckButton() {
-    val isGoogleWalletInstalled by remember { mutableStateOf(isGoogleWalletAvailable()) }
+fun DeviceCheckButton() {
+    val deviceInfo by remember { mutableStateOf(getDeviceInfo()) }
 
     Button(
         onClick = { /* 버튼 클릭 시 동작 */ },
@@ -29,17 +30,19 @@ fun GoogleWalletCheckButton() {
             .padding(16.dp)
             .fillMaxWidth()
     ) {
-        Text(if (isGoogleWalletInstalled) "Google Wallet is Installed" else "Google Wallet is Not Installed")
+        Text("Device: $deviceInfo")
     }
 }
 
-fun isGoogleWalletAvailable(): Boolean {
-    val packageManager: PackageManager = MainActivity().packageManager
-    return try {
-        packageManager.getPackageInfo("com.google.android.apps.walletnfcrel", 0)
-        true
-    } catch (e: PackageManager.NameNotFoundException) {
-        false
+fun getDeviceInfo(): String {
+    val manufacturer = Build.MANUFACTURER
+    val model = Build.MODEL
+
+    return when {
+        manufacturer.equals("Google", ignoreCase = true) -> "Google $model"
+        manufacturer.equals("Samsung", ignoreCase = true) -> "Samsung $model"
+        else -> "$manufacturer $model"
     }
 }
+
 -->
