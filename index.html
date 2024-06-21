@@ -1,6 +1,7 @@
 <!--
 
-import android.os.Build
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,19 +11,27 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            DeviceCheckButton()
+            GpsPermissionCheckButton()
         }
     }
 }
 
 @Composable
-fun DeviceCheckButton() {
-    val deviceInfo by remember { mutableStateOf(getDeviceInfo()) }
+fun GpsPermissionCheckButton() {
+    val context = LocalContext.current
+    var hasGpsPermission by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        hasGpsPermission = checkGpsPermission(context)
+    }
+
+    val buttonText = if (hasGpsPermission) "GPS Permission Granted" else "GPS Permission Not Granted"
 
     Button(
         onClick = { /* 버튼 클릭 시 동작 */ },
@@ -30,19 +39,15 @@ fun DeviceCheckButton() {
             .padding(16.dp)
             .fillMaxWidth()
     ) {
-        Text("Device: $deviceInfo")
+        Text(buttonText)
     }
 }
 
-fun getDeviceInfo(): String {
-    val manufacturer = Build.MANUFACTURER
-    val model = Build.MODEL
-
-    return when {
-        manufacturer.equals("Google", ignoreCase = true) -> "Google $model"
-        manufacturer.equals("Samsung", ignoreCase = true) -> "Samsung $model"
-        else -> "$manufacturer $model"
-    }
+fun checkGpsPermission(context: android.content.Context): Boolean {
+    return ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
 }
 
 -->
