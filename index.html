@@ -1,53 +1,44 @@
 <!--
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
+import android.provider.Settings;
+import androidx.appcompat.app.AppCompatActivity;
 
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            GpsPermissionCheckButton()
+public class MainActivity extends AppCompatActivity {
+
+    private static final int PERMISSION_REQUEST_CODE = 1;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        // 권한이 없을 경우 설정 페이지로 이동
+        if (!checkPermission()) {
+            requestPermission();
         }
     }
-}
 
-@Composable
-fun GpsPermissionCheckButton() {
-    val context = LocalContext.current
-    var hasGpsPermission by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        hasGpsPermission = checkGpsPermission(context)
+    private boolean checkPermission() {
+        // 권한 확인 로직
+        // 예: if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)
+        // 필요시 해당 코드로 권한 체크
+        return true; // 권한이 있는 경우 true 반환, 없을 경우 false 반환
     }
 
-    val buttonText = if (hasGpsPermission) "GPS Permission Granted" else "GPS Permission Not Granted"
-
-    Button(
-        onClick = { /* 버튼 클릭 시 동작 */ },
-        modifier = Modifier
-            .padding(16.dp)
-            .fillMaxWidth()
-    ) {
-        Text(buttonText)
+    private void requestPermission() {
+        Intent intent = new Intent();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            Uri uri = Uri.fromParts("package", getPackageName(), null);
+            intent.setData(uri);
+        } else {
+            intent.setAction(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS);
+        }
+        startActivity(intent);
     }
-}
-
-fun checkGpsPermission(context: android.content.Context): Boolean {
-    return ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.ACCESS_FINE_LOCATION
-    ) == PackageManager.PERMISSION_GRANTED
 }
 
 -->
