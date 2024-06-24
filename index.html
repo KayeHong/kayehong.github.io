@@ -1,43 +1,65 @@
 <!--
 
-import android.content.Intent;
-import android.net.Uri;
-import android.os.Build;
-import android.provider.Settings;
-import androidx.appcompat.app.AppCompatActivity;
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material.Button
+import androidx.compose.material.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.myapplication.ui.theme.MyApplicationTheme
 
-public class MainActivity extends AppCompatActivity {
+// Singleton 객체 선언
+object MySingleton {
+    private val _myValue = mutableStateOf("Initial Value")
+    val myValue: State<String> get() = _myValue
 
-    private static final int PERMISSION_REQUEST_CODE = 1;
+    fun updateValue(newValue: String) {
+        _myValue.value = newValue
+    }
+}
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        // 권한이 없을 경우 설정 페이지로 이동
-        if (!checkPermission()) {
-            requestPermission();
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MyApplicationTheme {
+                MainScreen()
+            }
         }
     }
+}
 
-    private boolean checkPermission() {
-        // 권한 확인 로직
-        // 예: if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)
-        // 필요시 해당 코드로 권한 체크
-        return true; // 권한이 있는 경우 true 반환, 없을 경우 false 반환
+@Composable
+fun MyComposable() {
+    // Singleton 객체의 상태를 추적
+    val myValue by MySingleton.myValue
+
+    // UI를 상태에 따라 업데이트
+    Text(text = myValue)
+
+    // 값 변경을 위한 버튼
+    Button(onClick = {
+        MySingleton.updateValue("Updated Value")
+    }) {
+        Text("Update Value")
     }
+}
 
-    private void requestPermission() {
-        Intent intent = new Intent();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-            Uri uri = Uri.fromParts("package", getPackageName(), null);
-            intent.setData(uri);
-        } else {
-            intent.setAction(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS);
-        }
-        startActivity(intent);
+@Composable
+fun MainScreen() {
+    Column {
+        MyComposable()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DefaultPreview() {
+    MyApplicationTheme {
+        MainScreen()
     }
 }
 
