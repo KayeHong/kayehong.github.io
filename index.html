@@ -1,51 +1,28 @@
 <!--
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Icon
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.tooling.preview.Preview
+fun splitList(originalList: List<Int>): List<List<Int>> {
+    val result = mutableListOf<List<Int>>()
+    val size = originalList.size
 
-@Composable
-fun IconGrid(iconCount: Int) {
-    val icons = remember { List(iconCount) { Icons.Filled.Star } }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-    ) {
-        for (row in 0 until 2) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                for (column in 0 until 4) {
-                    val index = row * 4 + column
-                    if (index < iconCount) {
-                        Icon(
-                            imageVector = icons[index],
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp)
-                        )
-                    } else {
-                        Spacer(modifier = Modifier.size(48.dp))
-                    }
-                }
-            }
+    for (i in 0 until size step 3) {
+        val childList = mutableListOf<Int>()
+        childList.add(originalList[i])
+        if (i + 3 < size) {
+            childList.add(originalList[i + 3])
         }
+        result.add(childList)
     }
+
+    return result
 }
 
-@Preview(showBackground = true)
-@Composable
-fun IconGridPreview() {
-    IconGrid(iconCount = 5)
+fun main() {
+    val originalList1 = listOf(1, 2, 3, 4, 5, 6, 7, 8)
+    val originalList2 = listOf(1, 2, 3, 4, 5, 6)
+    val originalList3 = listOf(1, 2, 3)
+
+    println(splitList(originalList1)) // [[1, 4], [2, 5], [3, 6], [7, 8]]
+    println(splitList(originalList2)) // [[1, 4], [2, 5], [3, 6]]
+    println(splitList(originalList3)) // [[1], [2], [3]]
 }
 
 -->
