@@ -18,26 +18,23 @@ fun IconGrid(iconCount: Int) {
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        // 아이콘을 한 줄에 4개씩 나눠서 배치하기
-        for (index in 0 until 8) {
-            if (index % 4 == 0) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    for (i in 0 until 4) {
-                        val iconIndex = index + i
-                        if (iconIndex < iconCount) {
-                            Icon(
-                                imageVector = icons[iconIndex],
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp)
-                            )
-                        } else {
-                            Spacer(modifier = Modifier.size(48.dp))
-                        }
+        for (row in 0 until 2) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                for (column in 0 until 4) {
+                    val index = row * 4 + column
+                    if (index < iconCount) {
+                        Icon(
+                            imageVector = icons[index],
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp)
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.size(48.dp))
                     }
                 }
             }
