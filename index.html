@@ -1,28 +1,27 @@
 <!--
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.Types
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+class MyWidgetReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (AppWidgetManager.ACTION_APPWIDGET_UPDATE == intent.action) {
+            val extras = intent.extras
+            if (extras != null) {
+                val appWidgetIds = extras.getIntArray(AppWidgetManager.EXTRA_APPWIDGET_IDS) ?: return
+                val personList = extras.getSerializable("EXTRA_PERSON_LIST") as? ArrayList<Person>
 
-fun main() {
-    val json = """
-        [
-            {"name": "Alice", "age": 30, "city": "New York"},
-            {"name": "Bob", "age": 25, "city": "Los Angeles"}
-        ]
-    """
+                // 이제 personList 객체를 사용할 수 있습니다.
+                if (personList != null) {
+                    for (person in personList) {
+                        Log.d("MyWidgetReceiver", "Received person: ${person.name}, ${person.age}")
+                    }
+                }
 
-    val moshi = Moshi.Builder()
-        .add(KotlinJsonAdapterFactory())
-        .build()
-
-    val listType = Types.newParameterizedType(List::class.java, Person::class.java)
-    val jsonAdapter = moshi.adapter<List<Person>>(listType)
-
-    val persons: List<Person>? = jsonAdapter.fromJson(json)
-    if (persons != null) {
-        persons.forEach { person ->
-            println("Name: ${person.name}, Age: ${person.age}, City: ${person.city}")
+                // 위젯 업데이트 로직을 여기에 추가
+                updateAppWidget(context, appWidgetManager, appWidgetIds)
+            }
         }
+    }
+
+    private fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        // 위젯 업데이트 구현
     }
 }
 
