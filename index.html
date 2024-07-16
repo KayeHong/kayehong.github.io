@@ -1,28 +1,23 @@
 <!--
-class MyWidgetReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        if (AppWidgetManager.ACTION_APPWIDGET_UPDATE == intent.action) {
-            val extras = intent.extras
-            if (extras != null) {
-                val appWidgetIds = extras.getIntArray(AppWidgetManager.EXTRA_APPWIDGET_IDS) ?: return
-                val personList = extras.getSerializable("EXTRA_PERSON_LIST") as? ArrayList<Person>
+import androidx.datastore.preferences.core.stringPreferencesKey
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import java.io.IOException
 
-                // 이제 personList 객체를 사용할 수 있습니다.
-                if (personList != null) {
-                    for (person in personList) {
-                        Log.d("MyWidgetReceiver", "Received person: ${person.name}, ${person.age}")
-                    }
-                }
-
-                // 위젯 업데이트 로직을 여기에 추가
-                updateAppWidget(context, appWidgetManager, appWidgetIds)
+fun getData(context: Context, key: String): Flow<String?> {
+    val dataStoreKey = stringPreferencesKey(key)
+    return context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
             }
         }
-    }
-
-    private fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        // 위젯 업데이트 구현
-    }
+        .map { preferences ->
+            preferences[dataStoreKey]
+        }
 }
 
 -->
