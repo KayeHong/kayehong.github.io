@@ -1,23 +1,96 @@
 <!--
-import androidx.datastore.preferences.core.stringPreferencesKey
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.map
-import java.io.IOException
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import kotlin.math.roundToInt
 
-fun getData(context: Context, key: String): Flow<String?> {
-    val dataStoreKey = stringPreferencesKey(key)
-    return context.dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
+@Composable
+fun DraggableIcon(
+    id: Int,
+    selectedId: Int?,
+    onDragStart: (Int) -> Unit,
+    onDragEnd: () -> Unit,
+    dragViewModel: DragViewModel
+) {
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    val iconSize = 50.dp
+    val iconCenter = iconSize.toPx() / 2
+
+    Box(
+        modifier = Modifier
+            .size(iconSize)
+            .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
+            .background(MaterialTheme.colorScheme.primary)
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = {
+                        onDragStart(id)
+                    },
+                    onDragEnd = {
+                        onDragEnd()
+                    },
+                    onDrag = { change, dragAmount ->
+                        if (selectedId == id) {
+                            change.consume()
+                            offset += dragAmount
+                            dragViewModel.updateDragPosition(offset + dragAmount)
+                        }
+                    }
+                )
             }
+            .zIndex(if (selectedId == id) 1f else 0f)
+    )
+
+    LaunchedEffect(offset) {
+        val centerX = offset.x + iconCenter
+        val centerY = offset.y + iconCenter
+        val touchPoint = Offset(centerX, centerY)
+
+        if (isTouchPointOnCenter(touchPoint, Offset(iconCenter, iconCenter))) {
+            // 터치 포인트가 아이콘의 중앙에 도달했음을 감지
+            println("Touch point is at the center of the icon")
         }
-        .map { preferences ->
-            preferences[dataStoreKey]
+    }
+}
+
+fun isTouchPointOnCenter(touchPoint: Offset, center: Offset): Boolean {
+    // 허용 오차를 두고 중앙에 도달했는지 확인
+    val threshold = 5
+    return (touchPoint.x - center.x).absoluteValue < threshold && (touchPoint.y - center.y).absoluteValue < threshold
+}
+
+@Composable
+fun DraggableIcons(viewModel: DragViewModel) {
+    var selectedId by remember { mutableStateOf<Int?>(null) }
+
+    val icons = List(4) { it }
+
+    Box(Modifier.fillMaxSize()) {
+        icons.forEach { id ->
+            DraggableIcon(
+                id = id,
+                selectedId = selectedId,
+                onDragStart = { selectedId = it },
+                onDragEnd = { selectedId = null },
+                dragViewModel = viewModel
+            )
         }
+    }
+}
+
+@Composable
+fun MyApp(viewModel: DragViewModel) {
+    MaterialTheme {
+        DraggableIcons(viewModel)
+    }
 }
 
 -->
