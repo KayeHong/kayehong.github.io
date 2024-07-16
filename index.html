@@ -1,62 +1,29 @@
 <!--
-@Composable
-fun DraggableIcon() {
-    var dragOffset by remember { mutableStateOf(Offset.Zero) }
-    var isDragging by remember { mutableStateOf(false) }
-    var isPressed by remember { mutableStateOf(false) }
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = !isPressed
-                        awaitRelease()
-                    }
-                )
-            }
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = { isDragging = true },
-                    onDragEnd = { isDragging = false },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        dragOffset += dragAmount
-                    }
-                )
-            }
-    ) {
-        // 기존 아이콘
-        if (!isDragging) {
-            Icon(
-                imageVector = if (isPressed) Icons.Default.Favorite else Icons.Default.Star,
-                contentDescription = null,
-                modifier = Modifier.align(Alignment.Center)
-            )
+fun main() {
+    val json = """
+        [
+            {"name": "Alice", "age": 30, "city": "New York"},
+            {"name": "Bob", "age": 25, "city": "Los Angeles"}
+        ]
+    """
+
+    val moshi = Moshi.Builder()
+        .add(KotlinJsonAdapterFactory())
+        .build()
+
+    val listType = Types.newParameterizedType(List::class.java, Person::class.java)
+    val jsonAdapter = moshi.adapter<List<Person>>(listType)
+
+    val persons: List<Person>? = jsonAdapter.fromJson(json)
+    if (persons != null) {
+        persons.forEach { person ->
+            println("Name: ${person.name}, Age: ${person.age}, City: ${person.city}")
         }
-
-        // 드래그 중일 때 표시되는 아이콘
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .drawWithContent {
-                    if (isDragging) {
-                        drawContent()
-                        drawImage(
-                            image = ImageVector.vectorResource(id = if (isPressed) R.drawable.ic_favorite else R.drawable.ic_star),
-                            topLeft = dragOffset
-                        )
-                    }
-                }
-        )
     }
-}
-
-@Preview
-@Composable
-fun PreviewDraggableIcon() {
-    DraggableIcon()
 }
 
 -->
