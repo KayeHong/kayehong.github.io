@@ -7,90 +7,93 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.*
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import kotlin.math.roundToInt
 
-@Composable
-fun DraggableIcon(
-    id: Int,
-    selectedId: Int?,
-    onDragStart: (Int) -> Unit,
-    onDragEnd: () -> Unit,
-    dragViewModel: DragViewModel
-) {
-    var offset by remember { mutableStateOf(Offset.Zero) }
-    val iconSize = 50.dp
-    val iconCenter = iconSize.toPx() / 2
+data class IconInfo(
+    val id: Int,
+    var position: Offset = Offset.Zero,
+    var size: Offset = Offset.Zero
+)
 
+@Composable
+fun TrackableIcon(
+    iconInfo: IconInfo,
+    onPositionChanged: (IconInfo) -> Unit
+) {
     Box(
         modifier = Modifier
-            .size(iconSize)
-            .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
+            .size(50.dp)
             .background(MaterialTheme.colorScheme.primary)
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = {
-                        onDragStart(id)
-                    },
-                    onDragEnd = {
-                        onDragEnd()
-                    },
-                    onDrag = { change, dragAmount ->
-                        if (selectedId == id) {
-                            change.consume()
-                            offset += dragAmount
-                            dragViewModel.updateDragPosition(offset + dragAmount)
-                        }
-                    }
-                )
+            .onGloballyPositioned { coords ->
+                iconInfo.position = coords.positionInWindow()
+                iconInfo.size = Offset(coords.size.width.toFloat(), coords.size.height.toFloat())
+                onPositionChanged(iconInfo)
             }
-            .zIndex(if (selectedId == id) 1f else 0f)
     )
-
-    LaunchedEffect(offset) {
-        val centerX = offset.x + iconCenter
-        val centerY = offset.y + iconCenter
-        val touchPoint = Offset(centerX, centerY)
-
-        if (isTouchPointOnCenter(touchPoint, Offset(iconCenter, iconCenter))) {
-            // 터치 포인트가 아이콘의 중앙에 도달했음을 감지
-            println("Touch point is at the center of the icon")
-        }
-    }
-}
-
-fun isTouchPointOnCenter(touchPoint: Offset, center: Offset): Boolean {
-    // 허용 오차를 두고 중앙에 도달했는지 확인
-    val threshold = 5
-    return (touchPoint.x - center.x).absoluteValue < threshold && (touchPoint.y - center.y).absoluteValue < threshold
 }
 
 @Composable
-fun DraggableIcons(viewModel: DragViewModel) {
-    var selectedId by remember { mutableStateOf<Int?>(null) }
-
-    val icons = List(4) { it }
-
-    Box(Modifier.fillMaxSize()) {
-        icons.forEach { id ->
-            DraggableIcon(
-                id = id,
-                selectedId = selectedId,
-                onDragStart = { selectedId = it },
-                onDragEnd = { selectedId = null },
-                dragViewModel = viewModel
+fun IconList(
+    icons: List<IconInfo>,
+    onPositionChanged: (IconInfo) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        icons.forEach { iconInfo ->
+            TrackableIcon(
+                iconInfo = iconInfo,
+                onPositionChanged = onPositionChanged
             )
         }
     }
 }
 
 @Composable
-fun MyApp(viewModel: DragViewModel) {
-    MaterialTheme {
-        DraggableIcons(viewModel)
+fun MyApp() {
+    val icons = remember { List(4) { IconInfo(it) } }
+    val iconPositions = remember { mutableStateListOf<IconInfo>() }
+
+    IconList(icons) { updatedIconInfo ->
+        iconPositions[updatedIconInfo.id] = updatedIconInfo
     }
+
+    var draggedIcon by remember { mutableStateOf<IconInfo?>(null) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = { offset ->
+                        // 드래그가 시작된 아이콘 확인
+                        draggedIcon = iconPositions.find { iconInfo ->
+                            offset.x in iconInfo.position.x..(iconInfo.position.x + iconInfo.size.x) &&
+                            offset.y in iconInfo.position.y..(iconInfo.position.y + iconInfo.size.y)
+                        }
+                    },
+                    onDrag = { change, _ ->
+                        change.consume()
+                        draggedIcon?.let { icon ->
+                            val currentPosition = change.position
+                            val hoveredIcon = iconPositions.find { iconInfo ->
+                                currentPosition.x in iconInfo.position.x..(iconInfo.position.x + iconInfo.size.x) &&
+                                currentPosition.y in iconInfo.position.y..(iconInfo.position.y + iconInfo.size.y)
+                            }
+                            if (hoveredIcon != null && hoveredIcon != icon) {
+                                println("Dragging over icon with id: ${hoveredIcon.id}")
+                            }
+                        }
+                    },
+                    onDragEnd = {
+                        draggedIcon = null
+                    }
+                )
+            }
+    )
 }
 
 -->
