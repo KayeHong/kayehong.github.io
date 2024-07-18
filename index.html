@@ -1,99 +1,68 @@
 <!--
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.*
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
 
-data class IconInfo(
-    val id: Int,
-    var position: Offset = Offset.Zero,
-    var size: Offset = Offset.Zero
-)
-
-@Composable
-fun TrackableIcon(
-    iconInfo: IconInfo,
-    onPositionChanged: (IconInfo) -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .size(50.dp)
-            .background(MaterialTheme.colorScheme.primary)
-            .onGloballyPositioned { coords ->
-                iconInfo.position = coords.positionInWindow()
-                iconInfo.size = Offset(coords.size.width.toFloat(), coords.size.height.toFloat())
-                onPositionChanged(iconInfo)
-            }
-    )
-}
-
-@Composable
-fun IconList(
-    icons: List<IconInfo>,
-    onPositionChanged: (IconInfo) -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        icons.forEach { iconInfo ->
-            TrackableIcon(
-                iconInfo = iconInfo,
-                onPositionChanged = onPositionChanged
-            )
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MyApp()
         }
     }
 }
 
 @Composable
 fun MyApp() {
-    val icons = remember { List(4) { IconInfo(it) } }
-    val iconPositions = remember { mutableStateListOf<IconInfo>() }
-
-    IconList(icons) { updatedIconInfo ->
-        iconPositions[updatedIconInfo.id] = updatedIconInfo
-    }
-
-    var draggedIcon by remember { mutableStateOf<IconInfo?>(null) }
+    var parentCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    var childCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    var childPositionInParent by remember { mutableStateOf(Offset.Zero) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        // 드래그가 시작된 아이콘 확인
-                        draggedIcon = iconPositions.find { iconInfo ->
-                            offset.x in iconInfo.position.x..(iconInfo.position.x + iconInfo.size.x) &&
-                            offset.y in iconInfo.position.y..(iconInfo.position.y + iconInfo.size.y)
-                        }
-                    },
-                    onDrag = { change, _ ->
-                        change.consume()
-                        draggedIcon?.let { icon ->
-                            val currentPosition = change.position
-                            val hoveredIcon = iconPositions.find { iconInfo ->
-                                currentPosition.x in iconInfo.position.x..(iconInfo.position.x + iconInfo.size.x) &&
-                                currentPosition.y in iconInfo.position.y..(iconInfo.position.y + iconInfo.size.y)
-                            }
-                            if (hoveredIcon != null && hoveredIcon != icon) {
-                                println("Dragging over icon with id: ${hoveredIcon.id}")
-                            }
-                        }
-                    },
-                    onDragEnd = {
-                        draggedIcon = null
+            .background(Color.LightGray)
+            .onGloballyPositioned { coordinates ->
+                parentCoordinates = coordinates
+                childCoordinates?.let {
+                    childPositionInParent = parentCoordinates!!.localPositionOf(it, Offset.Zero)
+                }
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .background(Color.Blue)
+                .onGloballyPositioned { coordinates ->
+                    childCoordinates = coordinates
+                    parentCoordinates?.let {
+                        childPositionInParent = it.localPositionOf(coordinates, Offset.Zero)
                     }
-                )
-            }
-    )
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Child",
+                color = Color.White,
+                style = MaterialTheme.typography.headlineLarge
+            )
+        }
+    }
+
+    LaunchedEffect(childPositionInParent) {
+        println("Child position in parent: $childPositionInParent")
+    }
 }
 
 -->
