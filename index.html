@@ -2,16 +2,20 @@
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.*
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,44 +28,72 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MyApp() {
-    var parentCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
-    var childCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
-    var childPositionInParent by remember { mutableStateOf(Offset.Zero) }
+    var icon1Offset by remember { mutableStateOf(Offset.Zero) }
+    var icon2Offset by remember { mutableStateOf(Offset.Zero) }
+    val icon1Position = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
+    val icon2Position = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
 
-    Box(
+    val swapPositions: suspend () -> Unit = {
+        icon1Position.animateTo(icon2Offset, animationSpec = tween(durationMillis = 500))
+        icon2Position.animateTo(icon1Offset, animationSpec = tween(durationMillis = 500))
+    }
+
+    val resetPositions: suspend () -> Unit = {
+        icon1Position.animateTo(Offset.Zero, animationSpec = tween(durationMillis = 500))
+        icon2Position.animateTo(Offset.Zero, animationSpec = tween(durationMillis = 500))
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.LightGray)
-            .onGloballyPositioned { coordinates ->
-                parentCoordinates = coordinates
-                childCoordinates?.let {
-                    childPositionInParent = parentCoordinates!!.localPositionOf(it, Offset.Zero)
-                }
-            },
-        contentAlignment = Alignment.Center
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
                 .size(100.dp)
+                .offset { IntOffset(icon1Position.value.x.roundToInt(), icon1Position.value.y.roundToInt()) }
                 .background(Color.Blue)
-                .onGloballyPositioned { coordinates ->
-                    childCoordinates = coordinates
-                    parentCoordinates?.let {
-                        childPositionInParent = it.localPositionOf(coordinates, Offset.Zero)
-                    }
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onPress = {
+                            swapPositions()
+                            tryAwaitRelease()
+                            resetPositions()
+                        }
+                    )
                 },
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "Child",
-                color = Color.White,
-                style = MaterialTheme.typography.headlineLarge
-            )
+            Text(text = "Icon 1", color = Color.White, style = MaterialTheme.typography.headlineLarge)
+        }
+
+        Spacer(modifier = Modifier.height(50.dp))
+
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .offset { IntOffset(icon2Position.value.x.roundToInt(), icon2Position.value.y.roundToInt()) }
+                .background(Color.Red)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onPress = {
+                            swapPositions()
+                            tryAwaitRelease()
+                            resetPositions()
+                        }
+                    )
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = "Icon 2", color = Color.White, style = MaterialTheme.typography.headlineLarge)
         }
     }
 
-    LaunchedEffect(childPositionInParent) {
-        println("Child position in parent: $childPositionInParent")
+    LaunchedEffect(Unit) {
+        icon1Offset = Offset(0f, 150f)
+        icon2Offset = Offset(0f, -150f)
     }
 }
 
