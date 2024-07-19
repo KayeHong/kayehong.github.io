@@ -4,7 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,73 +28,97 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MyApp() {
-    var icon1Offset by remember { mutableStateOf(Offset.Zero) }
-    var icon2Offset by remember { mutableStateOf(Offset.Zero) }
-    val icon1Position = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
-    val icon2Position = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
-
-    val swapPositions: suspend () -> Unit = {
-        icon1Position.animateTo(icon2Offset, animationSpec = tween(durationMillis = 500))
-        icon2Position.animateTo(icon1Offset, animationSpec = tween(durationMillis = 500))
-    }
+    val iconSize = 100.dp
+    val spacing = 16.dp
+    val dragOffset = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
+    val iconPositions = remember { List(4) { Animatable(Offset.Zero, Offset.VectorConverter) } }
+    var dragging by remember { mutableStateOf(false) }
 
     val resetPositions: suspend () -> Unit = {
-        icon1Position.animateTo(Offset.Zero, animationSpec = tween(durationMillis = 500))
-        icon2Position.animateTo(Offset.Zero, animationSpec = tween(durationMillis = 500))
+        iconPositions.forEach { position ->
+            position.animateTo(Offset.Zero, animationSpec = tween(durationMillis = 500))
+        }
+        dragOffset.animateTo(Offset.Zero, animationSpec = tween(durationMillis = 500))
     }
 
-    Column(
+    Row(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .fillMaxWidth()
+            .padding(horizontal = spacing)
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = { offset ->
+                        dragging = true
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        val newOffset = dragOffset.value + dragAmount
+                        if (newOffset.x < 0) {
+                            dragOffset.snapTo(newOffset)
+
+                            val dragIndex = iconPositions.lastIndex
+                            val threshold = iconSize.toPx() + spacing.toPx()
+                            for (i in dragIndex downTo 0) {
+                                val nextOffset = dragOffset.value.x + (dragIndex - i) * threshold
+                                if (nextOffset < 0) {
+                                    iconPositions[i].snapTo(Offset(nextOffset, 0f))
+                                } else {
+                                    iconPositions[i].snapTo(Offset.Zero)
+                                }
+                            }
+                        }
+                    },
+                    onDragEnd = {
+                        dragging = false
+                        resetPositions()
+                    },
+                    onDragCancel = {
+                        dragging = false
+                        resetPositions()
+                    }
+                )
+            },
+        horizontalArrangement = Arrangement.spacedBy(spacing)
     ) {
-        Box(
-            modifier = Modifier
-                .size(100.dp)
-                .offset { IntOffset(icon1Position.value.x.roundToInt(), icon1Position.value.y.roundToInt()) }
-                .background(Color.Blue)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onPress = {
-                            swapPositions()
-                            tryAwaitRelease()
-                            resetPositions()
+        iconPositions.forEachIndexed { index, position ->
+            Box(
+                modifier = Modifier
+                    .size(iconSize)
+                    .offset { IntOffset(position.value.x.roundToInt(), position.value.y.roundToInt()) }
+                    .background(
+                        color = when (index) {
+                            0 -> Color.Red
+                            1 -> Color.Green
+                            2 -> Color.Blue
+                            else -> Color.Yellow
                         }
-                    )
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = "Icon 1", color = Color.White, style = MaterialTheme.typography.headlineLarge)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Icon $index",
+                    color = Color.White,
+                    style = MaterialTheme.typography.headlineLarge
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(50.dp))
-
+        // 마지막 아이콘 (드래그 가능한 아이콘)
         Box(
             modifier = Modifier
-                .size(100.dp)
-                .offset { IntOffset(icon2Position.value.x.roundToInt(), icon2Position.value.y.roundToInt()) }
-                .background(Color.Red)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onPress = {
-                            swapPositions()
-                            tryAwaitRelease()
-                            resetPositions()
-                        }
-                    )
-                },
+                .size(iconSize)
+                .offset { IntOffset(dragOffset.value.x.roundToInt(), dragOffset.value.y.roundToInt()) }
+                .background(Color.Cyan),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = "Icon 2", color = Color.White, style = MaterialTheme.typography.headlineLarge)
+            Text(
+                text = "Drag Me",
+                color = Color.White,
+                style = MaterialTheme.typography.headlineLarge
+            )
         }
-    }
-
-    LaunchedEffect(Unit) {
-        icon1Offset = Offset(0f, 150f)
-        icon2Offset = Offset(0f, -150f)
     }
 }
+
 
 -->
