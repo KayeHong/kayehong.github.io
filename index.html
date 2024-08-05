@@ -1,77 +1,57 @@
 <!--
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import androidx.compose.material.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
-fun ShakingIcon() {
-    val coroutineScope = rememberCoroutineScope()
-    var isAnimating by remember { mutableStateOf(false) }
+fun SamsungWalletVersionChecker(requiredVersion: Int) {
+    val context = LocalContext.current
+    val packageManager = context.packageManager
+    val packageName = "com.samsung.android.samsungpay.wallet"
 
-    if (isAnimating) {
-        val transition = rememberInfiniteTransition()
+    var showUpdateDialog by remember { mutableStateOf(false) }
 
-        val angle1 by transition.animateFloat(
-            initialValue = -20f,
-            targetValue = 20f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 500, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse
-            )
-        )
-
-        val angle2 by transition.animateFloat(
-            initialValue = -40f,
-            targetValue = 40f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 500, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse
-            )
-        )
-
-        val finalAngle by animateFloatAsState(
-            targetValue = 0f,
-            animationSpec = tween(durationMillis = 1000, easing = LinearEasing)
-        )
-
-        var currentAngle by remember { mutableStateOf(angle1) }
-        LaunchedEffect(Unit) {
-            delay(1000)
-            currentAngle = angle2
-            delay(1000)
-            currentAngle = finalAngle
-            delay(1000)
-            isAnimating = false
-        }
-
-        Icon(
-            imageVector = ImageVector.vectorResource(id = R.drawable.ic_icon), // 아이콘 리소스
-            contentDescription = null,
-            modifier = Modifier
-                .size(64.dp)
-                .rotate(currentAngle)
-        )
-    } else {
-        Icon(
-            imageVector = ImageVector.vectorResource(id = R.drawable.ic_icon), // 아이콘 리소스
-            contentDescription = null,
-            modifier = Modifier
-                .size(64.dp)
-        )
+    val versionCode = try {
+        val pInfo = packageManager.getPackageInfo(packageName, 0)
+        pInfo.versionCode
+    } catch (e: PackageManager.NameNotFoundException) {
+        -1 // Samsung Wallet이 설치되지 않은 경우
     }
 
-    Button(onClick = { isAnimating = true }) {
-        Text("Start Animation")
+    if (versionCode in 1..requiredVersion) {
+        showUpdateDialog = true
+    }
+
+    if (showUpdateDialog) {
+        AlertDialog(
+            onDismissRequest = { showUpdateDialog = false },
+            title = { Text("업데이트 필요") },
+            text = { Text("삼성 월렛을 최신 버전으로 업데이트해주세요.") },
+            confirmButton = {
+                Button(onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        data = Uri.parse("market://details?id=$packageName")
+                        setPackage("com.android.vending")
+                    }
+                    context.startActivity(intent)
+                    showUpdateDialog = false
+                }) {
+                    Text("업데이트")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showUpdateDialog = false }) {
+                    Text("취소")
+                }
+            }
+        )
     }
 }
+
+
 
 --!>
