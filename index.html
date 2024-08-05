@@ -1,54 +1,93 @@
 <!--
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
-import androidx.compose.material.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
 
-@Composable
-fun SamsungWalletVersionChecker(requiredVersion: Int) {
-    val context = LocalContext.current
-    val packageManager = context.packageManager
-    val packageName = "com.samsung.android.samsungpay.wallet"
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
+import com.example.myapplication.ui.theme.MyApplicationTheme
 
-    var showUpdateDialog by remember { mutableStateOf(false) }
-
-    val versionCode = try {
-        val pInfo = packageManager.getPackageInfo(packageName, 0)
-        pInfo.versionCode
-    } catch (e: PackageManager.NameNotFoundException) {
-        -1 // Samsung Wallet이 설치되지 않은 경우
-    }
-
-    if (versionCode in 1..requiredVersion) {
-        showUpdateDialog = true
-    }
-
-    if (showUpdateDialog) {
-        AlertDialog(
-            onDismissRequest = { showUpdateDialog = false },
-            title = { Text("업데이트 필요") },
-            text = { Text("삼성 월렛을 최신 버전으로 업데이트해주세요.") },
-            confirmButton = {
-                Button(onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        data = Uri.parse("market://details?id=$packageName")
-                        setPackage("com.android.vending")
-                    }
-                    context.startActivity(intent)
-                    showUpdateDialog = false
-                }) {
-                    Text("업데이트")
-                }
-            },
-            dismissButton = {
-                Button(onClick = { showUpdateDialog = false }) {
-                    Text("취소")
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MyApplicationTheme {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    MyApp()
                 }
             }
-        )
+        }
+    }
+}
+
+@Composable
+fun MyApp() {
+    val frontPagerState = rememberPagerState(initialPage = 0)
+    val backPagerState = rememberPagerState(initialPage = 0)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Gray)
+    ) {
+        // 뒤의 페이저
+        HorizontalPager(
+            count = 5,
+            state = backPagerState,
+            modifier = Modifier
+                .height(100.dp)
+                .align(Alignment.CenterVertically)
+        ) { page ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        when (page) {
+                            0 -> Color.Blue
+                            1 -> Color.Yellow
+                            2 -> Color.Cyan
+                            3 -> Color.Magenta
+                            else -> Color.Gray
+                        }
+                    )
+            )
+        }
+
+        // 앞의 페이저 (터치 무시)
+        HorizontalPager(
+            count = 5,
+            state = frontPagerState,
+            modifier = Modifier
+                .height(300.dp)
+                .align(Alignment.CenterVertically)
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures { _, _ -> }
+                }
+        ) { page ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        when (page) {
+                            0 -> Color.Red
+                            1 -> Color.Green
+                            2 -> Color.LightGray
+                            3 -> Color.DarkGray
+                            else -> Color.Black
+                        }
+                    )
+            )
+        }
     }
 }
 
