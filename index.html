@@ -1,92 +1,53 @@
 <!--
-
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import com.example.myapplication.ui.theme.MyApplicationTheme
-
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            MyApplicationTheme {
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    MyApp()
-                }
-            }
-        }
-    }
-}
+import kotlinx.coroutines.launch
 
 @Composable
-fun MyApp() {
-    val frontPagerState = rememberPagerState(initialPage = 0)
-    val backPagerState = rememberPagerState(initialPage = 0)
+fun OverlappingHorizontalPagers() {
+    // Remember the pager states
+    val smallPagerState = rememberPagerState()
+    val largePagerState = rememberPagerState()
+
+    // Remember coroutine scope
+    val coroutineScope = rememberCoroutineScope()
+
+    // Synchronize the large pager with the small pager
+    LaunchedEffect(smallPagerState.currentPage) {
+        coroutineScope.launch {
+            largePagerState.scrollToPage(smallPagerState.currentPage)
+        }
+    }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Gray)
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        // 뒤의 페이저
+        // Small HorizontalPager (height = 100.dp)
         HorizontalPager(
-            count = 5,
-            state = backPagerState,
+            count = 10, // Your page count here
+            state = smallPagerState,
             modifier = Modifier
                 .height(100.dp)
-                .align(Alignment.CenterVertically)
+                .fillMaxWidth()
         ) { page ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        when (page) {
-                            0 -> Color.Blue
-                            1 -> Color.Yellow
-                            2 -> Color.Cyan
-                            3 -> Color.Magenta
-                            else -> Color.Gray
-                        }
-                    )
-            )
+            // Your content for each page
         }
 
-        // 앞의 페이저 (터치 무시)
+        // Large HorizontalPager (height = 300.dp)
         HorizontalPager(
-            count = 5,
-            state = frontPagerState,
+            count = 10, // Your page count here
+            state = largePagerState,
             modifier = Modifier
                 .height(300.dp)
-                .align(Alignment.CenterVertically)
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures { _, _ -> }
-                }
+                .fillMaxWidth()
         ) { page ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        when (page) {
-                            0 -> Color.Red
-                            1 -> Color.Green
-                            2 -> Color.LightGray
-                            3 -> Color.DarkGray
-                            else -> Color.Black
-                        }
-                    )
-            )
+            // Your content for each page
         }
     }
 }
