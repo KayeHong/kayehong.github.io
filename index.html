@@ -1,24 +1,26 @@
 <!--
-fun generateTreeList(n: Int): List<List<Int>> {
-    val result = mutableListOf<List<Int>>()
-    fun buildTree(currentList: List<Int>, depth: Int) {
-        if (depth == n) {
-            result.add(currentList)
-            return
+fun generateList(size: Int): List<List<List<Int>>> {
+    fun generateCombinations(length: Int): List<List<Int>> {
+        val combinations = mutableListOf<List<Int>>()
+        val totalCombinations = 1 shl length // 2^length
+
+        for (i in 0 until totalCombinations) {
+            val combination = MutableList(length) { index ->
+                if ((i shr index) and 1 == 0) -1 else 1
+            }
+            combinations.add(combination)
         }
-        buildTree(currentList + -1, depth + 1)
-        buildTree(currentList + 1, depth + 1)
+
+        return combinations
     }
-    buildTree(emptyList(), 0)
-    return result
+
+    return (1..size).map { generateCombinations(it) }
 }
 
 fun main() {
-    val n = 4
-    val fourthList = generateTreeList(n)
-    
-    // 결과 출력
-    fourthList.forEach { println(it) }
+    val size = 3
+    val result = generateList(size)
+    println(result)
 }
 
 --!>
