@@ -1,57 +1,24 @@
 <!--
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
-
-@Composable
-fun OverlappingHorizontalPagers() {
-    // Remember the pager states
-    val smallPagerState = rememberPagerState()
-    val largePagerState = rememberPagerState()
-
-    // Remember coroutine scope
-    val coroutineScope = rememberCoroutineScope()
-
-    // Synchronize the large pager with the small pager
-    LaunchedEffect(smallPagerState.currentPage) {
-        coroutineScope.launch {
-            largePagerState.scrollToPage(smallPagerState.currentPage)
+fun generateTreeList(n: Int): List<List<Int>> {
+    val result = mutableListOf<List<Int>>()
+    fun buildTree(currentList: List<Int>, depth: Int) {
+        if (depth == n) {
+            result.add(currentList)
+            return
         }
+        buildTree(currentList + -1, depth + 1)
+        buildTree(currentList + 1, depth + 1)
     }
-
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        // Small HorizontalPager (height = 100.dp)
-        HorizontalPager(
-            count = 10, // Your page count here
-            state = smallPagerState,
-            modifier = Modifier
-                .height(100.dp)
-                .fillMaxWidth()
-        ) { page ->
-            // Your content for each page
-        }
-
-        // Large HorizontalPager (height = 300.dp)
-        HorizontalPager(
-            count = 10, // Your page count here
-            state = largePagerState,
-            modifier = Modifier
-                .height(300.dp)
-                .fillMaxWidth()
-        ) { page ->
-            // Your content for each page
-        }
-    }
+    buildTree(emptyList(), 0)
+    return result
 }
 
-
+fun main() {
+    val n = 4
+    val fourthList = generateTreeList(n)
+    
+    // 결과 출력
+    fourthList.forEach { println(it) }
+}
 
 --!>
