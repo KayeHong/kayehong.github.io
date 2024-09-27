@@ -1,42 +1,26 @@
 <!--
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 
-@Composable
-fun AnimatedGridWithBox() {
-    var items by remember { mutableStateOf((1..20).toList()) }
-
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3), // 3개의 열로 구성된 그리드
-        modifier = Modifier.padding(16.dp)
-    ) {
-        items(items) { item ->
-            // animateItemPlacement를 통해 아이템 위치 변경 시 애니메이션 추가
-            Box(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .animateItemPlacement() // 아이템이 재배치될 때 애니메이션 적용
-            ) {
-                Text(
-                    text = "Item $item",
-                    modifier = Modifier.padding(16.dp)
-                )
+fun generateDotFileForJDepend() {
+    val jdepend = JDepend()
+    jdepend.addDirectory("build/classes/kotlin/debug")
+    
+    // DOT 파일 생성
+    val dotFile = File("build/reports/jdepend_graph.dot")
+    dotFile.bufferedWriter().use { writer ->
+        writer.write("digraph G {\n")
+        jdepend.analyze()
+        jdepend.packages.forEach { javaPackage ->
+            if (javaPackage.name.startsWith("com.yourproject.targetpackage")) {
+                writer.write("\"${javaPackage.name}\";\n")
+                // 연결 관계를 출력하려면 여기에서 의존성을 추가해야 합니다.
+                javaPackage.efferents.forEach { efferent ->
+                    writer.write("\"${javaPackage.name}\" -> \"${efferent.name}\";\n")
+                }
             }
         }
+        writer.write("}\n")
     }
-
-    // 예시: 버튼을 클릭하면 리스트 순서를 뒤집음
-    Button(onClick = { items = items.shuffled() }) {
-        Text("Shuffle Items")
-    }
+    println("DOT file saved to: ${dotFile.absolutePath}")
 }
 
 --!>
