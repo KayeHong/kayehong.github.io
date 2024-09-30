@@ -29,4 +29,41 @@ class CustomJavaPackage(name: String) : JavaPackage(name) {
 
 
 
+
+import java.io.File
+
+fun generateClassDependencyGraph() {
+    // JDepend 확장 객체 사용
+    val customPackages = mutableMapOf<String, CustomJavaPackage>()
+
+    // 클래스 관계 수집 (예: 패키지에 클래스와 의존성 추가)
+    val mainPackage = CustomJavaPackage("com.example.main")
+    val mainClass = CustomJavaClass("com.example.main.MainClass")
+    val helperClass = CustomJavaClass("com.example.helper.HelperClass")
+
+    mainClass.addCustomEfferent(helperClass)  // MainClass가 HelperClass를 의존함
+    mainPackage.addCustomClass(mainClass)
+    customPackages["com.example.main"] = mainPackage
+
+    // DOT 파일 생성
+    val dotFile = File("build/reports/class_dependency_graph.dot")
+    dotFile.bufferedWriter().use { writer ->
+        writer.write("digraph G {\n")
+        writer.write("node [shape=box];\n")  // 클래스 노드를 사각형으로 설정
+
+        // 패키지 및 클래스 간 의존성 그리기
+        customPackages.forEach { (packageName, customPackage) ->
+            customPackage.getCustomClasses().forEach { javaClass ->
+                javaClass.getCustomEfferents().forEach { efferent ->
+                    writer.write("\"${javaClass.name}\" -> \"${efferent.name}\";\n")
+                }
+            }
+        }
+
+        writer.write("}\n")
+    }
+
+    println("DOT file saved to: ${dotFile.absolutePath}")
+}
+
 --!>
