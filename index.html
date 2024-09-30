@@ -1,26 +1,62 @@
 <!--
+import jdepend.framework.JDepend
+import jdepend.framework.JavaClass
+import jdepend.framework.JavaPackage
+import java.io.File
 
-fun generateDotFileForJDepend() {
+fun generatePackageAndClassDependencyGraph() {
     val jdepend = JDepend()
-    jdepend.addDirectory("build/classes/kotlin/debug")
-    
-    // DOT 파일 생성
-    val dotFile = File("build/reports/jdepend_graph.dot")
+    jdepend.addDirectory("build/classes/kotlin/debug") // 클래스 파일 경로 추가
+
+    // DOT 파일 생성 경로 설정
+    val dotFile = File("build/reports/package_class_dependency_graph.dot")
+    dotFile.parentFile.mkdirs() // 디렉토리가 없으면 생성
     dotFile.bufferedWriter().use { writer ->
         writer.write("digraph G {\n")
+        writer.write("node [shape=box];\n") // 클래스 노드를 사각형으로 설정
+
         jdepend.analyze()
-        jdepend.packages.forEach { javaPackage ->
-            if (javaPackage.name.startsWith("com.yourproject.targetpackage")) {
-                writer.write("\"${javaPackage.name}\";\n")
-                // 연결 관계를 출력하려면 여기에서 의존성을 추가해야 합니다.
-                javaPackage.efferents.forEach { efferent ->
-                    writer.write("\"${javaPackage.name}\" -> \"${efferent.name}\";\n")
+
+        val packages = jdepend.packages as Collection<JavaPackage>
+
+        // 1. 각 패키지와 클래스 간의 관계를 서브그래프로 정의
+        packages.forEach { javaPackage ->
+            writer.write("subgraph cluster_${javaPackage.name.replace('.', '_')} {\n")
+            writer.write("label = \"${javaPackage.name}\";\n")
+            writer.write("color = blue;\n") // 패키지 서브그래프 색 설정
+
+            // 2. 각 패키지 내의 클래스 노드 정의
+            val classes = javaPackage.classes as Collection<JavaClass>
+            classes.forEach { javaClass ->
+                writer.write("\"${javaClass.name}\" [label=\"${javaClass.name.split('.').last()}\"];\n")
+            }
+
+            writer.write("}\n")
+        }
+
+        // 3. 패키지 간 의존성 정의
+        packages.forEach { javaPackage ->
+            javaPackage.efferents.forEach { efferent ->
+                writer.write("\"${javaPackage.name}\" -> \"${efferent.name}\" [style=dashed, color=red];\n")
+            }
+        }
+
+        // 4. 클래스 간의 의존성 정의 (선택적으로 추가)
+        packages.forEach { javaPackage ->
+            val classes = javaPackage.classes as Collection<JavaClass>
+            classes.forEach { javaClass ->
+                val classEfferents = javaClass.efferents as? Collection<JavaClass>
+                classEfferents?.forEach { dependentClass ->
+                    writer.write("\"${javaClass.name}\" -> \"${dependentClass.name}\";\n")
                 }
             }
         }
+
         writer.write("}\n")
     }
-    println("DOT file saved to: ${dotFile.absolutePath}")
+
+    println("DOT file generated at: ${dotFile.absolutePath}")
 }
+
 
 --!>
