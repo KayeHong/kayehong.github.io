@@ -1,4 +1,4 @@
-<!--
+9<!--
 
 import jdepend.framework.JDepend
 import jdepend.framework.JavaClass
@@ -62,5 +62,34 @@ fun analyzePackagesAndCollectClasses(directory: String): Map<String, CustomJavaP
 
     return customPackages  // 분석된 패키지 및 클래스 반환
 }
+
+
+
+
+fun generateClassDependencyGraph(directory: String) {
+    // 분석된 패키지 및 클래스 간 의존성 정보 수집
+    val customPackages = analyzePackagesAndCollectClasses(directory)
+
+    // DOT 파일 생성 경로 설정
+    val dotFile = File("build/reports/class_dependency_graph.dot")
+    dotFile.bufferedWriter().use { writer ->
+        writer.write("digraph G {\n")
+        writer.write("node [shape=box];\n")  // 클래스 노드를 사각형으로 설정
+
+        // 패키지 및 클래스 간 의존성 그리기
+        customPackages.forEach { (_, customPackage) ->
+            customPackage.getCustomClasses().forEach { javaClass ->
+                javaClass.getCustomEfferents().forEach { efferent ->
+                    writer.write("\"${javaClass.name}\" -> \"${efferent.name}\";\n")
+                }
+            }
+        }
+
+        writer.write("}\n")
+    }
+
+    println("DOT file saved to: ${dotFile.absolutePath}")
+}
+
 
 -->
