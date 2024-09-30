@@ -1,12 +1,15 @@
 <!--
+
+import jdepend.framework.JDepend
 import jdepend.framework.JavaClass
 import jdepend.framework.JavaPackage
+import java.io.File
 
+// 확장된 CustomJavaClass 및 CustomJavaPackage 선언
 class CustomJavaClass(name: String) : JavaClass(name) {
-    // 클래스 간의 의존성을 추적할 리스트
     private val customEfferents = mutableSetOf<JavaClass>()
 
-    // 의존성 추가
+    // 클래스 간의 의존성 추가
     fun addCustomEfferent(efferentClass: JavaClass) {
         customEfferents.add(efferentClass)
     }
@@ -27,43 +30,37 @@ class CustomJavaPackage(name: String) : JavaPackage(name) {
     fun getCustomClasses(): Set<CustomJavaClass> = customClasses
 }
 
+// JDepend 인스턴스 생성 및 패키지 분석
+fun analyzePackagesAndCollectClasses(directory: String): Map<String, CustomJavaPackage> {
+    val jdepend = JDepend()
+    jdepend.addDirectory(directory)  // 클래스 파일이 위치한 디렉토리를 추가
+    jdepend.analyze()  // JDepend 분석 수행
 
-
-
-import java.io.File
-
-fun generateClassDependencyGraph() {
-    // JDepend 확장 객체 사용
+    // 패키지 저장소 초기화
     val customPackages = mutableMapOf<String, CustomJavaPackage>()
 
-    // 클래스 관계 수집 (예: 패키지에 클래스와 의존성 추가)
-    val mainPackage = CustomJavaPackage("com.example.main")
-    val mainClass = CustomJavaClass("com.example.main.MainClass")
-    val helperClass = CustomJavaClass("com.example.helper.HelperClass")
+    // JDepend 분석 결과에서 패키지와 클래스 탐색
+    val packages = jdepend.packages as Collection<JavaPackage>
+    packages.forEach { javaPackage ->
+        // CustomJavaPackage 생성
+        val customPackage = CustomJavaPackage(javaPackage.name)
 
-    mainClass.addCustomEfferent(helperClass)  // MainClass가 HelperClass를 의존함
-    mainPackage.addCustomClass(mainClass)
-    customPackages["com.example.main"] = mainPackage
-
-    // DOT 파일 생성
-    val dotFile = File("build/reports/class_dependency_graph.dot")
-    dotFile.bufferedWriter().use { writer ->
-        writer.write("digraph G {\n")
-        writer.write("node [shape=box];\n")  // 클래스 노드를 사각형으로 설정
-
-        // 패키지 및 클래스 간 의존성 그리기
-        customPackages.forEach { (packageName, customPackage) ->
-            customPackage.getCustomClasses().forEach { javaClass ->
-                javaClass.getCustomEfferents().forEach { efferent ->
-                    writer.write("\"${javaClass.name}\" -> \"${efferent.name}\";\n")
-                }
+        // 패키지 내 클래스들을 CustomJavaClass로 변환하고, CustomJavaPackage에 추가
+        javaPackage.classes.forEach { javaClass ->
+            val customClass = CustomJavaClass(javaClass.name)
+            
+            // 클래스 의존성 분석 및 추가
+            javaClass.efferents.forEach { efferentClass ->
+                customClass.addCustomEfferent(efferentClass)
             }
+
+            customPackage.addCustomClass(customClass)  // 패키지에 클래스 추가
         }
 
-        writer.write("}\n")
+        customPackages[javaPackage.name] = customPackage
     }
 
-    println("DOT file saved to: ${dotFile.absolutePath}")
+    return customPackages  // 분석된 패키지 및 클래스 반환
 }
 
---!>
+-->
