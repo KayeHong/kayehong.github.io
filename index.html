@@ -1,95 +1,30 @@
-9<!--
+<!--
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.Preferences
+import kotlinx.coroutines.flow.map
 
-import jdepend.framework.JDepend
-import jdepend.framework.JavaClass
-import jdepend.framework.JavaPackage
-import java.io.File
+// 기존의 DataStore 객체
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
 
-// 확장된 CustomJavaClass 및 CustomJavaPackage 선언
-class CustomJavaClass(name: String) : JavaClass(name) {
-    private val customEfferents = mutableSetOf<JavaClass>()
+// 새로 추가할 키 정의
+val SHOW_GUIDE_KEY = booleanPreferencesKey("show_guide")
 
-    // 클래스 간의 의존성 추가
-    fun addCustomEfferent(efferentClass: JavaClass) {
-        customEfferents.add(efferentClass)
+// 1. 새로운 값을 추가하여 저장하는 함수
+suspend fun saveShowGuide(context: Context, value: Boolean) {
+    context.dataStore.edit { preferences ->
+        preferences[SHOW_GUIDE_KEY] = value
     }
-
-    // 의존성 목록 반환
-    fun getCustomEfferents(): Set<JavaClass> = customEfferents
 }
 
-class CustomJavaPackage(name: String) : JavaPackage(name) {
-    private val customClasses = mutableSetOf<CustomJavaClass>()
-
-    // 패키지 내 클래스 추가
-    fun addCustomClass(javaClass: CustomJavaClass) {
-        customClasses.add(javaClass)
-    }
-
-    // 패키지 내 클래스 반환
-    fun getCustomClasses(): Set<CustomJavaClass> = customClasses
-}
-
-// JDepend 인스턴스 생성 및 패키지 분석
-fun analyzePackagesAndCollectClasses(directory: String): Map<String, CustomJavaPackage> {
-    val jdepend = JDepend()
-    jdepend.addDirectory(directory)  // 클래스 파일이 위치한 디렉토리를 추가
-    jdepend.analyze()  // JDepend 분석 수행
-
-    // 패키지 저장소 초기화
-    val customPackages = mutableMapOf<String, CustomJavaPackage>()
-
-    // JDepend 분석 결과에서 패키지와 클래스 탐색
-    val packages = jdepend.packages as Collection<JavaPackage>
-    packages.forEach { javaPackage ->
-        // CustomJavaPackage 생성
-        val customPackage = CustomJavaPackage(javaPackage.name)
-
-        // 패키지 내 클래스들을 CustomJavaClass로 변환하고, CustomJavaPackage에 추가
-        javaPackage.classes.forEach { javaClass ->
-            val customClass = CustomJavaClass(javaClass.name)
-            
-            // 클래스 의존성 분석 및 추가
-            javaClass.efferents.forEach { efferentClass ->
-                customClass.addCustomEfferent(efferentClass)
-            }
-
-            customPackage.addCustomClass(customClass)  // 패키지에 클래스 추가
+// 2. 값을 읽어오는 함수
+fun readShowGuide(context: Context): Flow<Boolean> {
+    return context.dataStore.data
+        .map { preferences ->
+            preferences[SHOW_GUIDE_KEY] ?: true // 기본값으로 true 설정
         }
-
-        customPackages[javaPackage.name] = customPackage
-    }
-
-    return customPackages  // 분석된 패키지 및 클래스 반환
 }
 
-
-
-
-fun generateClassDependencyGraph(directory: String) {
-    // 분석된 패키지 및 클래스 간 의존성 정보 수집
-    val customPackages = analyzePackagesAndCollectClasses(directory)
-
-    // DOT 파일 생성 경로 설정
-    val dotFile = File("build/reports/class_dependency_graph.dot")
-    dotFile.bufferedWriter().use { writer ->
-        writer.write("digraph G {\n")
-        writer.write("node [shape=box];\n")  // 클래스 노드를 사각형으로 설정
-
-        // 패키지 및 클래스 간 의존성 그리기
-        customPackages.forEach { (_, customPackage) ->
-            customPackage.getCustomClasses().forEach { javaClass ->
-                javaClass.getCustomEfferents().forEach { efferent ->
-                    writer.write("\"${javaClass.name}\" -> \"${efferent.name}\";\n")
-                }
-            }
-        }
-
-        writer.write("}\n")
-    }
-
-    println("DOT file saved to: ${dotFile.absolutePath}")
-}
 
 
 -->
