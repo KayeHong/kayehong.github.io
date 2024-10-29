@@ -40,21 +40,50 @@ if [ -z "$branch" ]; then
   exit 1
 fi
 
-# 현재 브랜치와 리모트 브랜치의 상태 비교
-commits_ahead=$(git rev-list origin/$branch..$branch --count 2>/dev/null)
+# 메인 저장소의 브랜치 삭제 함수
+delete_branch() {
+  local repo_path=$1
 
-if [ "$commits_ahead" -gt 0 ]; then
-  echo "Error: There are $commits_ahead unpushed commits on branch '$branch'."
-  echo "Push your changes or stash them before deleting the branch."
-  exit 1
-fi
+  echo "Processing repository: $repo_path"
+  cd "$repo_path" || exit 1
 
-# 로컬 브랜치 삭제
-git branch -D "$branch"
-echo "Deleted local branch: $branch"
+  # 현재 브랜치와 리모트 브랜치의 상태 비교
+  commits_ahead=$(git rev-list origin/$branch..$branch --count 2>/dev/null)
 
-# 리모트 브랜치 삭제
-git push origin --delete "$branch"
-echo "Deleted remote branch: $branch"
+  if [ "$commits_ahead" -gt 0 ]; then
+    echo "Error: There are $commits_ahead unpushed commits on branch '$branch' in $repo_path."
+    echo "Push your changes or stash them before deleting the branch."
+    cd - > /dev/null
+    return 1
+  fi
+
+  # 브랜치가 있는지 확인
+  if git show-ref --verify --quiet refs/heads/$branch; then
+    git branch -D "$branch"
+    echo "Deleted local branch: $branch in $repo_path"
+  else
+    echo "Local branch '$branch' does not exist in $repo_path. Skipping..."
+  fi
+
+  # 리모트 브랜치 삭제
+  if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+    git push origin --delete "$branch"
+    echo "Deleted remote branch: $branch in $repo_path"
+  else
+    echo "Remote branch '$branch' does not exist in $repo_path. Skipping..."
+  fi
+
+  cd - > /dev/null
+}
+
+# 메인 저장소 처리
+delete_branch "."
+
+# 모든 서브모듈 처리
+git submodule foreach --recursive '
+  branch_name='"$branch"'
+  ../../'"$(basename "$0")"' $branch_name
+'
+
 
 -->
