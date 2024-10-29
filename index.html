@@ -30,4 +30,31 @@ done
 echo "Results saved to $output_file"
 
 
+
+#!/bin/bash
+
+branch=$1
+
+if [ -z "$branch" ]; then
+  echo "Usage: $0 <branch-name>"
+  exit 1
+fi
+
+# 현재 브랜치와 리모트 브랜치의 상태 비교
+commits_ahead=$(git rev-list origin/$branch..$branch --count 2>/dev/null)
+
+if [ "$commits_ahead" -gt 0 ]; then
+  echo "Error: There are $commits_ahead unpushed commits on branch '$branch'."
+  echo "Push your changes or stash them before deleting the branch."
+  exit 1
+fi
+
+# 로컬 브랜치 삭제
+git branch -D "$branch"
+echo "Deleted local branch: $branch"
+
+# 리모트 브랜치 삭제
+git push origin --delete "$branch"
+echo "Deleted remote branch: $branch"
+
 -->
